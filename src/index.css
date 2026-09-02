@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+/* Tailwind v4 class-based dark mode (equivalent of v3's darkMode: 'class') */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --color-bg: #ffffff;
+  --color-surface: #f7f7f8;
+  --color-surface-strong: #ffffff;
+  --color-surface-muted: #e5e5e5;
+  --color-fill: rgba(0, 0, 0, 0.05);
+  --color-fill-hover: rgba(0, 0, 0, 0.08);
+  --color-border: #e5e5e5;
+  --color-border-strong: #d4d4d4;
+  --color-fg: #171717;
+  --color-fg-secondary: #52525b;
+  --color-fg-muted: #737373;
+  --color-fg-faint: #a3a3a3;
+  --color-accent-fg: #b45309;
+  --color-scrollbar: #d4d4d4;
+  --color-scrollbar-hover: #a3a3a3;
+  color-scheme: light;
+}
+
+.dark {
+  --color-bg: #0a0a0c;
+  --color-surface: #171717;
+  --color-surface-strong: #0a0a0a;
+  --color-surface-muted: #262626;
+  --color-fill: rgba(255, 255, 255, 0.1);
+  --color-fill-hover: rgba(255, 255, 255, 0.15);
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-border-strong: rgba(255, 255, 255, 0.2);
+  --color-fg: #ffffff;
+  --color-fg-secondary: #d4d4d4;
+  --color-fg-muted: #a3a3a3;
+  --color-fg-faint: #737373;
+  --color-accent-fg: #fbbf24;
+  --color-scrollbar: #2a2a2e;
+  --color-scrollbar-hover: #3a3a3e;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--color-bg);
+  --color-surface: var(--color-surface);
+  --color-surface-strong: var(--color-surface-strong);
+  --color-surface-muted: var(--color-surface-muted);
+  --color-fill: var(--color-fill);
+  --color-fill-hover: var(--color-fill-hover);
+  --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+  --color-fg: var(--color-fg);
+  --color-fg-secondary: var(--color-fg-secondary);
+  --color-fg-muted: var(--color-fg-muted);
+  --color-fg-faint: var(--color-fg-faint);
+  --color-accent-fg: var(--color-accent-fg);
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  overflow-anchor: none;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-scrollbar);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-scrollbar-hover);
+}

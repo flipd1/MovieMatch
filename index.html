@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <title>MovieMatch</title>
+    <meta
+      name="description"
+      content="Rate movies you've seen and get personalized recommendations, filtered to the streaming services you actually have."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="MovieMatch" />
+    <meta
+      property="og:description"
+      content="Rate movies you've seen and get personalized recommendations, filtered to the streaming services you actually have."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="MovieMatch" />
+    <meta
+      name="twitter:description"
+      content="Rate movies you've seen and get personalized recommendations, filtered to the streaming services you actually have."
+    />
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem("moviematch.theme");
+          var isDark =
+            saved === "light"
+              ? false
+              : saved === "dark"
+                ? true
+                : !window.matchMedia("(prefers-color-scheme: light)").matches;
+          document.documentElement.classList.toggle("dark", isDark);
+        } catch {
+          document.documentElement.classList.add("dark");
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
