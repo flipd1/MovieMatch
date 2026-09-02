@@ -92,6 +92,28 @@ export function getNowPlayingMovies(page = 1) {
   return tmdbFetch("/movie/now_playing", { page, region: "US" });
 }
 
+// Widely-seen, well-established popular movies — the seed list for a
+// brand-new user with nothing rated yet. Deliberately NOT "trending this
+// week": trending skews toward whatever's currently in theaters or about
+// to release, which a new user is unlikely to have seen yet, defeating
+// the point of a first-rating prompt. A release-date cutoff a year back
+// plus a high vote-count floor biases toward movies enough people have
+// actually watched to have an opinion on.
+const WIDELY_SEEN_WINDOW_YEARS = 1;
+
+export function getWidelySeenMovies(page = 1) {
+  const cutoff = new Date();
+  cutoff.setFullYear(cutoff.getFullYear() - WIDELY_SEEN_WINDOW_YEARS);
+
+  return tmdbFetch("/discover/movie", {
+    sort_by: "popularity.desc",
+    "vote_count.gte": 1000,
+    "vote_average.gte": 6,
+    "primary_release_date.lte": cutoff.toISOString().slice(0, 10),
+    page,
+  });
+}
+
 // Recent theatrical/digital releases currently streaming on the given
 // providers. TMDB has no "date added to service" field, so this is
 // necessarily an approximation: movies released in the last ~3 months that

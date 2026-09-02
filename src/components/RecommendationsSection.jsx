@@ -68,7 +68,7 @@ export default function RecommendationsSection({
     ),
   ]);
 
-  const heading = hasRatings ? "Recommended for You" : "Popular Right Now";
+  const heading = hasRatings ? "Recommended for You" : "Popular Movies";
 
   const reasonsByMovieId = Object.fromEntries(
     candidatePool.map((entry) => [entry.movie.id, entry.reason])

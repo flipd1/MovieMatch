@@ -1,10 +1,9 @@
 import {
   GENRE_NAMES,
   getDiscoverMovies,
-  getNowPlayingMovies,
   getRecommendations,
   getSimilarMovies,
-  getTrendingMovies,
+  getWidelySeenMovies,
 } from "./tmdb";
 import { buildGenreProfile, genreReason, topGenreIds } from "./taste";
 
@@ -19,7 +18,7 @@ const MAX_SEEDS = 6;
 
 export const MIN_VOTE_COUNT = 50;
 const DISCOVER_PAGES = 2;
-const TRENDING_PAGES = 2;
+const WIDELY_SEEN_PAGES = 2;
 
 // How much random "jitter" to add to each candidate's score before the
 // final sort. Real scores are integers (1 per source that recommended a
@@ -84,27 +83,21 @@ export async function buildCandidatePool(ratedMovies, dismissedIds = new Set()) 
   const topRated = pickSeedMovies(ratedMovies);
 
   if (!topRated.length) {
-    // Trending naturally overlaps heavily with what's currently in
-    // theaters (buzzy new releases are trending precisely because they're
-    // in theaters), which made "Popular Right Now" look like a duplicate
-    // of the dedicated In Theaters tab. Excluding now-playing titles here
-    // keeps the two sections distinct.
-    const [pages, nowPlaying] = await Promise.all([
-      Promise.all(
-        Array.from({ length: TRENDING_PAGES }, (_, i) =>
-          getTrendingMovies(i + 1).catch(() => ({ results: [] }))
-        )
-      ),
-      getNowPlayingMovies(1).catch(() => ({ results: [] })),
-    ]);
-    const nowPlayingIds = new Set(
-      (nowPlaying.results ?? []).map((movie) => movie.id)
+    // A brand-new user has nothing to seed recommendations from, so this
+    // is really a "give them something to rate" list, not a
+    // recommendation — widely-seen popular movies from at least a year
+    // back (see getWidelySeenMovies), not this week's trending/in-theaters
+    // buzz, which skews toward movies a new user likely hasn't seen yet
+    // and so can't actually rate.
+    const pages = await Promise.all(
+      Array.from({ length: WIDELY_SEEN_PAGES }, (_, i) =>
+        getWidelySeenMovies(i + 1).catch(() => ({ results: [] }))
+      )
     );
     const seen = new Map();
     pages.forEach((page) => {
       (page.results ?? []).forEach((movie) => {
         if (dismissedIds.has(movie.id)) return;
-        if (nowPlayingIds.has(movie.id)) return;
         if (!seen.has(movie.id)) seen.set(movie.id, movie);
       });
     });
