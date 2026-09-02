@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
+import { getTurnstileToken } from "../lib/turnstile";
 
 // Real Supabase anonymous auth, replacing the old client-generated
 // anon_id. On first visit this calls supabase.auth.signInAnonymously(),
@@ -7,12 +8,53 @@ import { isSupabaseConfigured, supabase } from "../lib/supabase";
 // identity (auth.uid()) — one the client cannot spoof or hand to another
 // row by editing a request payload, unlike the old plain-UUID column.
 // The session itself is persisted by supabase-js in localStorage, so
-// returning visits reuse it instead of signing in again.
+// returning visits reuse it instead of signing in again — a Turnstile
+// challenge (see lib/turnstile.js) only ever runs once per browser, right
+// before that first anonymous sign-in, not on every visit.
 //
 // Linking an email is entirely optional (see AccountSection): calling
 // updateUser({ email }) sends a confirmation link but does NOT flip
 // is_anonymous until the user actually clicks it, so the anonymous
 // identity — and its data — keeps working unchanged in the meantime.
+
+// Module-scoped so the sign-in flow (including the Turnstile challenge)
+// only ever runs ONCE per page load, no matter how many times the effect
+// below fires. This matters because React's StrictMode intentionally
+// double-invokes effects in development: without this guard, that ran
+// init() twice, rendering two separate Turnstile widgets (needing two
+// clicks to clear) AND firing two independent signInAnonymously() calls
+// that raced each other. Whichever one resolved second silently became
+// the browser's actual persisted session, while React state could end up
+// holding the *other* call's user — so every write after that sent a
+// user_id that didn't match the session's real auth.uid(), and Row Level
+// Security quietly rejected it. A `cancelled` flag alone can't fix this:
+// it only stops a stale effect run from calling setState, not from
+// having already fired a second real sign-in request.
+let authInitPromise = null;
+
+function initAuth() {
+  if (!authInitPromise) {
+    authInitPromise = (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.user) return data.session.user;
+
+      // Supabase's Attack Protection requires a Turnstile token on every
+      // sign-in now, anonymous ones included — without this,
+      // signInAnonymously() below fails outright.
+      const captchaToken = await getTurnstileToken();
+
+      const { data: signInData, error: signInError } =
+        await supabase.auth.signInAnonymously({
+          options: { captchaToken },
+        });
+      if (signInError) throw signInError;
+
+      return signInData.session?.user ?? null;
+    })();
+  }
+  return authInitPromise;
+}
+
 export function useAuth() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(isSupabaseConfigured);
@@ -30,33 +72,19 @@ export function useAuth() {
 
     let cancelled = false;
 
-    async function init() {
-      const { data } = await supabase.auth.getSession();
-
-      if (data.session?.user) {
+    initAuth()
+      .then((initializedUser) => {
         if (!cancelled) {
-          setUser(data.session.user);
+          setUser(initializedUser);
           setLoading(false);
         }
-        return;
-      }
-
-      const { data: signInData, error: signInError } =
-        await supabase.auth.signInAnonymously();
-
-      if (cancelled) return;
-
-      if (signInError) {
-        setError(signInError);
-        setLoading(false);
-        return;
-      }
-
-      setUser(signInData.session?.user ?? null);
-      setLoading(false);
-    }
-
-    init();
+      })
+      .catch((initError) => {
+        if (!cancelled) {
+          setError(initError);
+          setLoading(false);
+        }
+      });
 
     const {
       data: { subscription },

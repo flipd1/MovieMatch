@@ -22,6 +22,14 @@
       name="twitter:description"
       content="Rate movies you've seen and get personalized recommendations, filtered to the streaming services you actually have."
     />
+    <!-- Cloudflare Turnstile: gates anonymous sign-in (see src/lib/turnstile.js
+         and src/hooks/useAuth.js). Loaded async/deferred since it's only
+         needed once auth actually runs, never blocking first paint. -->
+    <script
+      src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+      async
+      defer
+    ></script>
     <script>
       (function () {
         try {
