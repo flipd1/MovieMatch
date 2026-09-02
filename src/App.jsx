@@ -47,6 +47,7 @@ export default function App() {
     isAnonymous,
     linkEmail,
     resendLinkEmail,
+    signInWithEmail,
     loading: authLoading,
   } = useAuth();
   const { ratedMovies, list, rateMovie, loading: ratingsLoading, error } =
@@ -318,6 +319,7 @@ export default function App() {
             isAnonymous={isAnonymous}
             linkEmail={linkEmail}
             resendLinkEmail={resendLinkEmail}
+            signInWithEmail={signInWithEmail}
             services={services}
             onServicesChange={setServices}
             isPro={isPro}

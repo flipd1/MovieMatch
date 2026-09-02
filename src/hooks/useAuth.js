@@ -118,6 +118,32 @@ export function useAuth() {
     return { error: resendError };
   }, []);
 
+  // The other half of "link an email": on a *new* device/browser there's
+  // no session yet carrying that email, so signs one in with a magic link
+  // instead of creating a fresh anonymous identity. shouldCreateUser:
+  // false means an email that was never linked anywhere just quietly does
+  // nothing (Supabase reports success either way, by design, so this
+  // can't be used to probe which emails have an account) rather than
+  // spinning up an unrelated new account for it.
+  const signInWithEmail = useCallback(async (email) => {
+    let captchaToken;
+    try {
+      captchaToken = await getTurnstileToken();
+    } catch (captchaError) {
+      return { error: captchaError };
+    }
+
+    const { error: otpError } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: window.location.origin,
+        shouldCreateUser: false,
+        captchaToken,
+      },
+    });
+    return { error: otpError };
+  }, []);
+
   return {
     userId: user?.id ?? null,
     email: user?.email ?? null,
@@ -126,5 +152,6 @@ export function useAuth() {
     error,
     linkEmail,
     resendLinkEmail,
+    signInWithEmail,
   };
 }

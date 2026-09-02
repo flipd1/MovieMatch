@@ -15,12 +15,17 @@ export default function AccountSection({
   isAnonymous,
   linkEmail,
   resendLinkEmail,
+  signInWithEmail,
 }) {
   const [inputEmail, setInputEmail] = useState("");
   const [status, setStatus] = useState("idle"); // idle | sending | sent | error
   const [pendingEmail, setPendingEmail] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
   const [copied, setCopied] = useState(false);
+
+  const [signInEmail, setSignInEmail] = useState("");
+  const [signInStatus, setSignInStatus] = useState("idle"); // idle | sending | sent | error
+  const [signInErrorMessage, setSignInErrorMessage] = useState(null);
 
   const linked = !isAnonymous && Boolean(email);
 
@@ -70,6 +75,28 @@ export default function AccountSection({
     }
 
     setStatus("sent");
+  };
+
+  const handleSignInSubmit = async (e) => {
+    e.preventDefault();
+    const trimmed = signInEmail.trim();
+    if (!EMAIL_REGEX.test(trimmed)) {
+      setSignInStatus("error");
+      setSignInErrorMessage("Enter a valid email address.");
+      return;
+    }
+
+    setSignInStatus("sending");
+    setSignInErrorMessage(null);
+
+    const { error } = await signInWithEmail(trimmed);
+    if (error) {
+      setSignInStatus("error");
+      setSignInErrorMessage(friendlyErrorMessage(error));
+      return;
+    }
+
+    setSignInStatus("sent");
   };
 
   return (
@@ -148,6 +175,51 @@ export default function AccountSection({
               {errorMessage}
             </p>
           )}
+
+          <div className="border-t border-border pt-3">
+            <p className="text-sm font-medium text-fg mb-1">
+              Already saved your account on another device?
+            </p>
+            <p className="text-sm text-fg-muted mb-3">
+              Sign in with that email to bring your ratings and lists to
+              this device instead of starting fresh here.
+            </p>
+
+            {signInStatus === "sent" ? (
+              <p className="text-sm text-emerald-600 dark:text-emerald-400">
+                If an account exists for{" "}
+                <span className="font-medium">{signInEmail.trim()}</span>,
+                we&apos;ve sent it a sign-in link. Click it on this device to
+                switch to that account.
+              </p>
+            ) : (
+              <form
+                onSubmit={handleSignInSubmit}
+                className="flex flex-col sm:flex-row gap-2"
+              >
+                <input
+                  type="email"
+                  value={signInEmail}
+                  onChange={(e) => setSignInEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="flex-1 min-w-0 bg-surface-muted border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:ring-2 focus:ring-border-strong"
+                />
+                <button
+                  type="submit"
+                  disabled={signInStatus === "sending" || !signInEmail.trim()}
+                  className="shrink-0 text-sm font-medium bg-fill hover:bg-fill-hover disabled:bg-surface-muted disabled:text-fg-faint disabled:cursor-not-allowed text-fg rounded-lg px-4 py-2 transition-colors cursor-pointer"
+                >
+                  {signInStatus === "sending" ? "Sending…" : "Send Sign-In Link"}
+                </button>
+              </form>
+            )}
+
+            {signInStatus === "error" && signInErrorMessage && (
+              <p className="text-xs text-red-600 dark:text-red-400 mt-2">
+                {signInErrorMessage}
+              </p>
+            )}
+          </div>
         </div>
       )}
 

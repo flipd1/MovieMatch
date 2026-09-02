@@ -10,6 +10,7 @@ export default function SettingsTab({
   isAnonymous,
   linkEmail,
   resendLinkEmail,
+  signInWithEmail,
   services,
   onServicesChange,
   isPro,
@@ -39,6 +40,7 @@ export default function SettingsTab({
           isAnonymous={isAnonymous}
           linkEmail={linkEmail}
           resendLinkEmail={resendLinkEmail}
+          signInWithEmail={signInWithEmail}
         />
       </section>
 
