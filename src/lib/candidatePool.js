@@ -1,6 +1,7 @@
 import {
   GENRE_NAMES,
   getDiscoverMovies,
+  getNowPlayingMovies,
   getRecommendations,
   getSimilarMovies,
   getTrendingMovies,
@@ -83,15 +84,27 @@ export async function buildCandidatePool(ratedMovies, dismissedIds = new Set()) 
   const topRated = pickSeedMovies(ratedMovies);
 
   if (!topRated.length) {
-    const pages = await Promise.all(
-      Array.from({ length: TRENDING_PAGES }, (_, i) =>
-        getTrendingMovies(i + 1).catch(() => ({ results: [] }))
-      )
+    // Trending naturally overlaps heavily with what's currently in
+    // theaters (buzzy new releases are trending precisely because they're
+    // in theaters), which made "Popular Right Now" look like a duplicate
+    // of the dedicated In Theaters tab. Excluding now-playing titles here
+    // keeps the two sections distinct.
+    const [pages, nowPlaying] = await Promise.all([
+      Promise.all(
+        Array.from({ length: TRENDING_PAGES }, (_, i) =>
+          getTrendingMovies(i + 1).catch(() => ({ results: [] }))
+        )
+      ),
+      getNowPlayingMovies(1).catch(() => ({ results: [] })),
+    ]);
+    const nowPlayingIds = new Set(
+      (nowPlaying.results ?? []).map((movie) => movie.id)
     );
     const seen = new Map();
     pages.forEach((page) => {
       (page.results ?? []).forEach((movie) => {
         if (dismissedIds.has(movie.id)) return;
+        if (nowPlayingIds.has(movie.id)) return;
         if (!seen.has(movie.id)) seen.set(movie.id, movie);
       });
     });

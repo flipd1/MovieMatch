@@ -9,6 +9,7 @@ import MyListsSection from "./components/MyListsSection";
 import AddToListModal from "./components/AddToListModal";
 import RewatchReminder from "./components/RewatchReminder";
 import WatchTonightModal from "./components/WatchTonightModal";
+import WelcomeServicesModal from "./components/WelcomeServicesModal";
 import SettingsTab from "./components/SettingsTab";
 import TabNav from "./components/TabNav";
 import MovieDetail from "./components/MovieDetail";
@@ -23,6 +24,8 @@ import { useEarlyAccess } from "./hooks/useEarlyAccess";
 import { useLists } from "./hooks/useLists";
 import { useTheme } from "./hooks/useTheme";
 import { isSupabaseConfigured } from "./lib/supabase";
+
+const WELCOME_SEEN_KEY = "moviematch.seenWelcomeServices";
 
 function PosterGridSkeleton() {
   return (
@@ -48,7 +51,18 @@ export default function App() {
   } = useAuth();
   const { ratedMovies, list, rateMovie, loading: ratingsLoading, error } =
     useRatedMovies(userId);
-  const { services, setServices } = useMyServices(userId);
+  const {
+    services,
+    setServices,
+    loading: servicesLoading,
+  } = useMyServices(userId);
+  const [welcomeDismissed, setWelcomeDismissed] = useState(() => {
+    try {
+      return localStorage.getItem(WELCOME_SEEN_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
   const { dismissedIds, dismissMovie } = useDismissedMovies(userId);
   const { isPro, setIsPro } = useIsPro(userId);
   const { earlyAccess, setEarlyAccess } = useEarlyAccess(userId);
@@ -77,6 +91,30 @@ export default function App() {
   });
 
   const loading = authLoading || ratingsLoading;
+
+  const showWelcomeServices =
+    isSupabaseConfigured &&
+    !authLoading &&
+    !servicesLoading &&
+    services.length === 0 &&
+    !welcomeDismissed;
+
+  const dismissWelcome = useCallback(() => {
+    setWelcomeDismissed(true);
+    try {
+      localStorage.setItem(WELCOME_SEEN_KEY, "1");
+    } catch {
+      // Best-effort — worst case the prompt reappears next visit.
+    }
+  }, []);
+
+  const handleSaveWelcomeServices = useCallback(
+    (selected) => {
+      setServices(selected);
+      dismissWelcome();
+    },
+    [setServices, dismissWelcome]
+  );
 
   const openMovie = useCallback((movie, reason) => {
     setOpenMovieId(movie.id);
@@ -313,6 +351,13 @@ export default function App() {
           onRate={rateMovie}
           onClose={() => setWatchTonightOpen(false)}
           dismissedIds={dismissedIds}
+        />
+      )}
+
+      {showWelcomeServices && (
+        <WelcomeServicesModal
+          onSave={handleSaveWelcomeServices}
+          onSkip={dismissWelcome}
         />
       )}
 
