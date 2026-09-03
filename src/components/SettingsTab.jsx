@@ -8,12 +8,8 @@ export default function SettingsTab({
   userId,
   email,
   isAnonymous,
-  hasLocalRatings,
   createAccount,
-  signIn,
-  signInAndMerge,
   signOut,
-  requestPasswordReset,
   services,
   onServicesChange,
   isPro,
@@ -43,12 +39,8 @@ export default function SettingsTab({
           userId={userId}
           email={email}
           isAnonymous={isAnonymous}
-          hasLocalRatings={hasLocalRatings}
           createAccount={createAccount}
-          signIn={signIn}
-          signInAndMerge={signInAndMerge}
           signOut={signOut}
-          requestPasswordReset={requestPasswordReset}
           focusTarget={accountFocusTarget}
           onFocusHandled={onAccountFocusHandled}
         />

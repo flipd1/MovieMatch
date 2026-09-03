@@ -9,6 +9,7 @@ import MyListsSection from "./components/MyListsSection";
 import AddToListModal from "./components/AddToListModal";
 import RewatchReminder from "./components/RewatchReminder";
 import WatchTonightModal from "./components/WatchTonightModal";
+import SignInModal from "./components/SignInModal";
 import WelcomeServicesModal from "./components/WelcomeServicesModal";
 import PasswordRecoveryModal from "./components/PasswordRecoveryModal";
 import SettingsTab from "./components/SettingsTab";
@@ -119,6 +120,7 @@ export default function App() {
   const [openMovieId, setOpenMovieId] = useState(null);
   const [openMovieReason, setOpenMovieReason] = useState(null);
   const [watchTonightOpen, setWatchTonightOpen] = useState(false);
+  const [signInModalOpen, setSignInModalOpen] = useState(false);
   const [addToListMovie, setAddToListMovie] = useState(null);
   const [activeTab, setActiveTab] = useState("discover");
   const [accountFocusTarget, setAccountFocusTarget] = useState(null);
@@ -171,9 +173,10 @@ export default function App() {
     [activeTab]
   );
 
-  const handleHeaderSignIn = useCallback(() => {
+  const handleCreateAccountFromSignIn = useCallback(() => {
+    setSignInModalOpen(false);
     handleTabChange("settings");
-    setAccountFocusTarget("signin");
+    setAccountFocusTarget("create");
   }, [handleTabChange]);
 
   const clearAccountFocusTarget = useCallback(() => {
@@ -212,7 +215,7 @@ export default function App() {
               {isAnonymous && (
                 <button
                   type="button"
-                  onClick={handleHeaderSignIn}
+                  onClick={() => setSignInModalOpen(true)}
                   className="text-sm font-medium text-fg-muted hover:text-fg cursor-pointer"
                 >
                   Sign In
@@ -230,7 +233,7 @@ export default function App() {
             {isAnonymous && (
               <button
                 type="button"
-                onClick={handleHeaderSignIn}
+                onClick={() => setSignInModalOpen(true)}
                 className="text-sm font-medium text-fg-muted hover:text-fg cursor-pointer"
               >
                 Sign In
@@ -445,6 +448,17 @@ export default function App() {
           onRate={rateMovie}
           onClose={() => setWatchTonightOpen(false)}
           dismissedIds={dismissedIds}
+        />
+      )}
+
+      {signInModalOpen && (
+        <SignInModal
+          hasLocalRatings={hasLocalRatings}
+          signIn={signIn}
+          signInAndMerge={signInAndMerge}
+          requestPasswordReset={requestPasswordReset}
+          onClose={() => setSignInModalOpen(false)}
+          onCreateAccount={handleCreateAccountFromSignIn}
         />
       )}
 
