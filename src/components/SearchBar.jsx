@@ -56,6 +56,7 @@ export default function SearchBar({ ratedMovies, onRate, onOpen }) {
 
   const closeSearch = () => {
     setIsOpen(false);
+    setQuery("");
     inputRef.current?.blur();
   };
 
@@ -69,6 +70,7 @@ export default function SearchBar({ ratedMovies, onRate, onOpen }) {
         !containerRef.current.contains(e.target)
       ) {
         setIsOpen(false);
+        setQuery("");
       }
     }
     function handleEscape(e) {
@@ -206,8 +208,29 @@ export default function SearchBar({ ratedMovies, onRate, onOpen }) {
             }}
             onFocus={() => setIsOpen(true)}
             placeholder="Search for a movie…"
-            className="w-full bg-surface border border-border rounded-full pl-10 pr-4 py-2.5 text-base text-fg placeholder:text-fg-faint focus:outline-none focus:ring-2 focus:ring-border-strong focus:border-border-strong transition-all"
+            className={`w-full bg-surface border border-border rounded-full pl-10 py-2.5 text-base text-fg placeholder:text-fg-faint focus:outline-none focus:ring-2 focus:ring-border-strong focus:border-border-strong transition-all ${
+              query ? "pr-10" : "pr-4"
+            }`}
           />
+          {query && (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery("");
+                inputRef.current?.focus();
+              }}
+              aria-label="Clear search"
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full text-fg-muted hover:text-fg hover:bg-fill transition-colors cursor-pointer"
+            >
+              <svg
+                viewBox="0 0 20 20"
+                className="w-3.5 h-3.5 fill-none stroke-current stroke-2"
+              >
+                <line x1="5" y1="5" x2="15" y2="15" strokeLinecap="round" />
+                <line x1="15" y1="5" x2="5" y2="15" strokeLinecap="round" />
+              </svg>
+            </button>
+          )}
         </div>
 
         {overlayActive && (
