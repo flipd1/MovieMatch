@@ -139,16 +139,27 @@ export default function App() {
   return (
     <div className="min-h-screen bg-bg text-fg flex flex-col">
       <header className="sticky top-0 z-10 backdrop-blur-md bg-bg/80 border-b border-border">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center gap-4 flex-wrap">
-          <h1 className="text-xl font-semibold tracking-tight shrink-0">
-            Movie<span className="text-accent-fg">Match</span>
-          </h1>
+        <div className="max-w-6xl mx-auto px-6 py-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+          <div className="flex items-center justify-between gap-4">
+            <h1 className="text-xl font-semibold tracking-tight shrink-0">
+              Movie<span className="text-accent-fg">Match</span>
+            </h1>
+            {/* Same toggle as the sm:ml-auto one below — shown here so it
+                stays paired with the logo on its own row on narrow
+                viewports, instead of getting flex-wrapped onto a stray
+                row below the search bar (which spans full width below
+                `sm`). Hidden again once the search bar has room to sit
+                inline and the other copy takes over. */}
+            <div className="sm:hidden">
+              <ThemeToggle theme={theme} onToggle={toggleTheme} />
+            </div>
+          </div>
           <SearchBar
             ratedMovies={ratedMovies}
             onRate={rateMovie}
             onOpen={openMovie}
           />
-          <div className="ml-auto flex items-center gap-2">
+          <div className="hidden sm:flex items-center gap-2 sm:ml-auto">
             <ThemeToggle theme={theme} onToggle={toggleTheme} />
           </div>
         </div>
