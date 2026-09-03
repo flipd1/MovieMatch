@@ -21,7 +21,7 @@ export default function RewatchReminder({
 
   return (
     <section>
-      <h2 className="text-lg font-medium mb-1 text-fg-secondary">
+      <h2 className="text-xl font-semibold sm:text-lg sm:font-medium mb-1 text-fg-secondary">
         Revisit This?
       </h2>
       <p className="text-sm text-fg-muted mb-4">

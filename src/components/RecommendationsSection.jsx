@@ -115,7 +115,7 @@ export default function RecommendationsSection({
   return (
     <section>
       <h2
-        className={`text-lg font-medium text-fg-secondary ${
+        className={`text-xl font-semibold sm:text-lg sm:font-medium text-fg-secondary ${
           hasRatings ? "mb-4" : "mb-1"
         }`}
       >

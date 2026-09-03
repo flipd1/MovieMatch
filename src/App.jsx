@@ -297,7 +297,7 @@ export default function App() {
               />
 
               <section>
-                <h2 className="text-lg font-medium mb-4 text-fg-secondary">
+                <h2 className="text-xl font-semibold sm:text-lg sm:font-medium mb-4 text-fg-secondary">
                   Your Rated Movies
                 </h2>
                 {loading ? (
@@ -318,7 +318,7 @@ export default function App() {
 
         <div className={activeTab === "theaters" ? "" : "hidden"}>
           <section>
-            <h2 className="text-lg font-medium mb-4 text-fg-secondary">
+            <h2 className="text-xl font-semibold sm:text-lg sm:font-medium mb-4 text-fg-secondary">
               In Theaters
             </h2>
             <InTheatersSection
@@ -332,7 +332,7 @@ export default function App() {
 
         <div className={activeTab === "new" ? "" : "hidden"}>
           <section>
-            <h2 className="text-lg font-medium mb-1 text-fg-secondary">
+            <h2 className="text-xl font-semibold sm:text-lg sm:font-medium mb-1 text-fg-secondary">
               New Releases
             </h2>
             <NewReleasesSection
@@ -348,7 +348,7 @@ export default function App() {
 
         <div className={activeTab === "stats" ? "" : "hidden"}>
           <section>
-            <h2 className="text-lg font-medium mb-4 text-fg-secondary">
+            <h2 className="text-xl font-semibold sm:text-lg sm:font-medium mb-4 text-fg-secondary">
               Your Stats
             </h2>
             <StatsSection
@@ -361,7 +361,7 @@ export default function App() {
 
         <div className={activeTab === "lists" ? "" : "hidden"}>
           <section>
-            <h2 className="text-lg font-medium mb-4 text-fg-secondary">
+            <h2 className="text-xl font-semibold sm:text-lg sm:font-medium mb-4 text-fg-secondary">
               My Lists
             </h2>
             <MyListsSection
