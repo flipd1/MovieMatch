@@ -10,7 +10,7 @@ const DISPLAY_LIMIT = 20;
 
 function PosterGridSkeleton() {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
       {Array.from({ length: 12 }).map((_, i) => (
         <div
           key={i}
@@ -141,7 +141,7 @@ export default function RecommendationsSection({
       {loading || (watchableOnly && providerLoading) ? (
         <PosterGridSkeleton />
       ) : finalMovies.length ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
           {finalMovies.map((movie) => (
             <MovieCard
               key={movie.id}

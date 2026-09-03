@@ -30,7 +30,7 @@ const WELCOME_SEEN_KEY = "moviematch.seenWelcomeServices";
 
 function PosterGridSkeleton() {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
       {Array.from({ length: 12 }).map((_, i) => (
         <div
           key={i}
@@ -178,7 +178,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-bg text-fg flex flex-col">
       <header className="sticky top-0 z-10 backdrop-blur-md bg-bg/80 border-b border-border">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
           <div className="flex items-center justify-between gap-4">
             <h1 className="text-xl font-semibold tracking-tight shrink-0">
               {/* The wordmark's brand color stays fixed across themes
@@ -229,7 +229,7 @@ export default function App() {
             <ThemeToggle theme={theme} onToggle={toggleTheme} />
           </div>
         </div>
-        <div className="max-w-6xl mx-auto px-6 pb-4">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-4">
           <TabNav
             activeTab={activeTab}
             onChange={handleTabChange}
@@ -238,7 +238,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-6xl w-full mx-auto px-6 py-10">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-10">
         <div className={activeTab === "discover" ? "space-y-14" : "hidden"}>
           {!isSupabaseConfigured ? (
             <div className="text-center py-16 max-w-md mx-auto space-y-2">

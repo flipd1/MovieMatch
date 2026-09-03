@@ -116,7 +116,7 @@ export default function InTheatersSection({
 
   if (loading) {
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
         {Array.from({ length: 18 }).map((_, i) => (
           <div
             key={i}
@@ -140,7 +140,7 @@ export default function InTheatersSection({
           </p>
         </div>
       ) : displayMovies.length ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
           {displayMovies.map((movie) => (
             <MovieCard
               key={movie.id}

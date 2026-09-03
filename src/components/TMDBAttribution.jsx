@@ -1,7 +1,7 @@
 export default function TMDBAttribution() {
   return (
     <footer className="border-t border-border mt-16 py-8">
-      <div className="max-w-6xl mx-auto px-6 flex flex-col items-center gap-3 text-center">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col items-center gap-3 text-center">
         <a
           href="https://www.themoviedb.org/"
           target="_blank"
