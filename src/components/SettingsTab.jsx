@@ -8,9 +8,11 @@ export default function SettingsTab({
   userId,
   email,
   isAnonymous,
-  linkEmail,
-  resendLinkEmail,
-  signInWithEmail,
+  hasLocalRatings,
+  createAccount,
+  signIn,
+  signOut,
+  requestPasswordReset,
   services,
   onServicesChange,
   isPro,
@@ -38,9 +40,11 @@ export default function SettingsTab({
           userId={userId}
           email={email}
           isAnonymous={isAnonymous}
-          linkEmail={linkEmail}
-          resendLinkEmail={resendLinkEmail}
-          signInWithEmail={signInWithEmail}
+          hasLocalRatings={hasLocalRatings}
+          createAccount={createAccount}
+          signIn={signIn}
+          signOut={signOut}
+          requestPasswordReset={requestPasswordReset}
         />
       </section>
 

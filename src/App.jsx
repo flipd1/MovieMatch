@@ -10,6 +10,7 @@ import AddToListModal from "./components/AddToListModal";
 import RewatchReminder from "./components/RewatchReminder";
 import WatchTonightModal from "./components/WatchTonightModal";
 import WelcomeServicesModal from "./components/WelcomeServicesModal";
+import PasswordRecoveryModal from "./components/PasswordRecoveryModal";
 import SettingsTab from "./components/SettingsTab";
 import TabNav from "./components/TabNav";
 import MovieDetail from "./components/MovieDetail";
@@ -45,13 +46,18 @@ export default function App() {
     userId,
     email,
     isAnonymous,
-    linkEmail,
-    resendLinkEmail,
-    signInWithEmail,
+    isPasswordRecovery,
+    createAccount,
+    signIn,
+    signOut,
+    requestPasswordReset,
+    updatePassword,
+    dismissPasswordRecovery,
     loading: authLoading,
   } = useAuth();
   const { ratedMovies, list, rateMovie, loading: ratingsLoading, error } =
     useRatedMovies(userId);
+  const hasLocalRatings = Object.keys(ratedMovies).length > 0;
   const {
     services,
     setServices,
@@ -150,7 +156,16 @@ export default function App() {
                 row below the search bar (which spans full width below
                 `sm`). Hidden again once the search bar has room to sit
                 inline and the other copy takes over. */}
-            <div className="sm:hidden">
+            <div className="sm:hidden flex items-center gap-3">
+              {isAnonymous && (
+                <button
+                  type="button"
+                  onClick={() => handleTabChange("settings")}
+                  className="text-sm font-medium text-fg-muted hover:text-fg cursor-pointer"
+                >
+                  Sign In
+                </button>
+              )}
               <ThemeToggle theme={theme} onToggle={toggleTheme} />
             </div>
           </div>
@@ -159,7 +174,16 @@ export default function App() {
             onRate={rateMovie}
             onOpen={openMovie}
           />
-          <div className="hidden sm:flex items-center gap-2 sm:ml-auto">
+          <div className="hidden sm:flex items-center gap-3 sm:ml-auto">
+            {isAnonymous && (
+              <button
+                type="button"
+                onClick={() => handleTabChange("settings")}
+                className="text-sm font-medium text-fg-muted hover:text-fg cursor-pointer"
+              >
+                Sign In
+              </button>
+            )}
             <ThemeToggle theme={theme} onToggle={toggleTheme} />
           </div>
         </div>
@@ -328,9 +352,11 @@ export default function App() {
             userId={userId}
             email={email}
             isAnonymous={isAnonymous}
-            linkEmail={linkEmail}
-            resendLinkEmail={resendLinkEmail}
-            signInWithEmail={signInWithEmail}
+            hasLocalRatings={hasLocalRatings}
+            createAccount={createAccount}
+            signIn={signIn}
+            signOut={signOut}
+            requestPasswordReset={requestPasswordReset}
             services={services}
             onServicesChange={setServices}
             isPro={isPro}
@@ -364,6 +390,13 @@ export default function App() {
           onRate={rateMovie}
           onClose={() => setWatchTonightOpen(false)}
           dismissedIds={dismissedIds}
+        />
+      )}
+
+      {isPasswordRecovery && (
+        <PasswordRecoveryModal
+          onUpdatePassword={updatePassword}
+          onDismiss={dismissPasswordRecovery}
         />
       )}
 

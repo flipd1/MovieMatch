@@ -12,44 +12,51 @@ import { getTurnstileToken } from "../lib/turnstile";
 // challenge (see lib/turnstile.js) only ever runs once per browser, right
 // before that first anonymous sign-in, not on every visit.
 //
-// Linking an email is entirely optional (see AccountSection): calling
-// updateUser({ email }) sends a confirmation link but does NOT flip
-// is_anonymous until the user actually clicks it, so the anonymous
-// identity — and its data — keeps working unchanged in the meantime.
+// Creating a real account (see AccountSection) is entirely optional:
+// calling updateUser({ email, password }) upgrades the CURRENT anonymous
+// session in place — same user_id, so every row already keyed to it
+// (ratings, preferences, lists) just keeps working, nothing to migrate.
+// If the project requires confirming a new email address, is_anonymous
+// stays true until that link is clicked; the password itself is set
+// immediately either way.
 
-// Module-scoped so the sign-in flow (including the Turnstile challenge)
-// only ever runs ONCE per page load, no matter how many times the effect
-// below fires. This matters because React's StrictMode intentionally
-// double-invokes effects in development: without this guard, that ran
-// init() twice, rendering two separate Turnstile widgets (needing two
-// clicks to clear) AND firing two independent signInAnonymously() calls
-// that raced each other. Whichever one resolved second silently became
-// the browser's actual persisted session, while React state could end up
-// holding the *other* call's user — so every write after that sent a
-// user_id that didn't match the session's real auth.uid(), and Row Level
-// Security quietly rejected it. A `cancelled` flag alone can't fix this:
-// it only stops a stale effect run from calling setState, not from
-// having already fired a second real sign-in request.
+// Module-scoped so the initial sign-in flow (including the Turnstile
+// challenge) only ever runs ONCE per page load, no matter how many times
+// the effect below fires. This matters because React's StrictMode
+// intentionally double-invokes effects in development: without this
+// guard, that ran init() twice, rendering two separate Turnstile widgets
+// (needing two clicks to clear) AND firing two independent
+// signInAnonymously() calls that raced each other. Whichever one resolved
+// second silently became the browser's actual persisted session, while
+// React state could end up holding the *other* call's user — so every
+// write after that sent a user_id that didn't match the session's real
+// auth.uid(), and Row Level Security quietly rejected it. A `cancelled`
+// flag alone can't fix this: it only stops a stale effect run from
+// calling setState, not from having already fired a second real sign-in
+// request. Reset to null by signOut() below, so signing out and back in
+// as a fresh anonymous user goes through this same guarded path again.
 let authInitPromise = null;
+
+async function signInAnonymouslyWithCaptcha() {
+  // Supabase's Attack Protection requires a Turnstile token on every
+  // sign-in now, anonymous ones included — without this,
+  // signInAnonymously() below fails outright.
+  const captchaToken = await getTurnstileToken();
+
+  const { data, error } = await supabase.auth.signInAnonymously({
+    options: { captchaToken },
+  });
+  if (error) throw error;
+
+  return data.session?.user ?? null;
+}
 
 function initAuth() {
   if (!authInitPromise) {
     authInitPromise = (async () => {
       const { data } = await supabase.auth.getSession();
       if (data.session?.user) return data.session.user;
-
-      // Supabase's Attack Protection requires a Turnstile token on every
-      // sign-in now, anonymous ones included — without this,
-      // signInAnonymously() below fails outright.
-      const captchaToken = await getTurnstileToken();
-
-      const { data: signInData, error: signInError } =
-        await supabase.auth.signInAnonymously({
-          options: { captchaToken },
-        });
-      if (signInError) throw signInError;
-
-      return signInData.session?.user ?? null;
+      return signInAnonymouslyWithCaptcha();
     })();
   }
   return authInitPromise;
@@ -59,6 +66,7 @@ export function useAuth() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [error, setError] = useState(null);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
   useEffect(() => {
     // One-time cleanup of the old client-generated ID this hook replaces —
@@ -88,8 +96,12 @@ export function useAuth() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
+      // Fired when the session came from clicking a password-reset email
+      // link — the app needs to show a "set new password" form rather
+      // than just quietly signing this (temporary, limited) session in.
+      if (event === "PASSWORD_RECOVERY") setIsPasswordRecovery(true);
     });
 
     return () => {
@@ -98,34 +110,26 @@ export function useAuth() {
     };
   }, []);
 
-  // Sends a confirmation link to `email`. The user's identity stays
-  // anonymous (and every existing row keyed to their uid stays exactly
-  // where it is) until they click it — this only starts the process.
-  const linkEmail = useCallback(async (email) => {
-    const { error: updateError } = await supabase.auth.updateUser(
-      { email },
+  // Upgrades the current anonymous session into a real account in place —
+  // same user_id, so ratings/preferences/lists already tied to it keep
+  // working unchanged. Returns whether the account is fully active yet:
+  // if the project requires confirming the new email, it stays anonymous
+  // until that link is clicked even though the password is already set.
+  const createAccount = useCallback(async ({ email, password }) => {
+    const { data, error: updateError } = await supabase.auth.updateUser(
+      { email, password },
       { emailRedirectTo: window.location.origin }
     );
-    return { error: updateError };
+    if (updateError) return { error: updateError, isAnonymous: true };
+    return { error: null, isAnonymous: data.user?.is_anonymous ?? true };
   }, []);
 
-  const resendLinkEmail = useCallback(async (email) => {
-    const { error: resendError } = await supabase.auth.resend({
-      type: "email_change",
-      email,
-      options: { emailRedirectTo: window.location.origin },
-    });
-    return { error: resendError };
-  }, []);
-
-  // The other half of "link an email": on a *new* device/browser there's
-  // no session yet carrying that email, so signs one in with a magic link
-  // instead of creating a fresh anonymous identity. shouldCreateUser:
-  // false means an email that was never linked anywhere just quietly does
-  // nothing (Supabase reports success either way, by design, so this
-  // can't be used to probe which emails have an account) rather than
-  // spinning up an unrelated new account for it.
-  const signInWithEmail = useCallback(async (email) => {
+  // Signs in with an existing account's email + password — the "new
+  // device" path. This REPLACES whatever session is currently active; see
+  // AccountSection for the confirmation step that runs first when the
+  // current (anonymous) session already has its own local ratings, so
+  // that data isn't switched away from silently.
+  const signIn = useCallback(async ({ email, password }) => {
     let captchaToken;
     try {
       captchaToken = await getTurnstileToken();
@@ -133,15 +137,59 @@ export function useAuth() {
       return { error: captchaError };
     }
 
-    const { error: otpError } = await supabase.auth.signInWithOtp({
+    const { error: signInError } = await supabase.auth.signInWithPassword({
       email,
-      options: {
-        emailRedirectTo: window.location.origin,
-        shouldCreateUser: false,
-        captchaToken,
-      },
+      password,
+      options: { captchaToken },
     });
-    return { error: otpError };
+    return { error: signInError };
+  }, []);
+
+  // Ends the current (real) session and starts a brand-new anonymous one
+  // right away, so the app keeps working with zero friction for whoever
+  // uses this browser next — same as a first-ever visit.
+  const signOut = useCallback(async () => {
+    setLoading(true);
+    await supabase.auth.signOut();
+    authInitPromise = null;
+
+    try {
+      const nextUser = await initAuth();
+      setUser(nextUser);
+    } catch (signOutError) {
+      setError(signOutError);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const requestPasswordReset = useCallback(async (email) => {
+    let captchaToken;
+    try {
+      captchaToken = await getTurnstileToken();
+    } catch (captchaError) {
+      return { error: captchaError };
+    }
+
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+      email,
+      { redirectTo: window.location.origin, captchaToken }
+    );
+    return { error: resetError };
+  }, []);
+
+  // Used after landing on the site via a password-reset email link (see
+  // isPasswordRecovery above) to actually set the new password.
+  const updatePassword = useCallback(async (newPassword) => {
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+    if (!updateError) setIsPasswordRecovery(false);
+    return { error: updateError };
+  }, []);
+
+  const dismissPasswordRecovery = useCallback(() => {
+    setIsPasswordRecovery(false);
   }, []);
 
   return {
@@ -150,8 +198,12 @@ export function useAuth() {
     isAnonymous: user?.is_anonymous ?? true,
     loading,
     error,
-    linkEmail,
-    resendLinkEmail,
-    signInWithEmail,
+    isPasswordRecovery,
+    createAccount,
+    signIn,
+    signOut,
+    requestPasswordReset,
+    updatePassword,
+    dismissPasswordRecovery,
   };
 }
