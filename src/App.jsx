@@ -55,9 +55,42 @@ export default function App() {
     dismissPasswordRecovery,
     loading: authLoading,
   } = useAuth();
-  const { ratedMovies, list, rateMovie, loading: ratingsLoading, error } =
-    useRatedMovies(userId);
+  const {
+    ratedMovies,
+    list,
+    rateMovie,
+    mergeRatings,
+    loading: ratingsLoading,
+    error,
+  } = useRatedMovies(userId);
   const hasLocalRatings = Object.keys(ratedMovies).length > 0;
+
+  // Signing in normally REPLACES the active session, so the outgoing
+  // anonymous session's ratings have to be snapshotted before that swap —
+  // afterward, RLS blocks reading them under the new session's auth.uid()
+  // even though the rows still exist. mergeRatings only fills in movies
+  // the target account doesn't already have a rating for; it never
+  // overwrites one the account already had.
+  const signInAndMerge = useCallback(
+    async ({ email, password }) => {
+      const snapshot = ratedMovies;
+      const { error: signInError, userId: newUserId } = await signIn({
+        email,
+        password,
+      });
+      if (signInError) return { error: signInError };
+
+      if (newUserId) {
+        try {
+          await mergeRatings(newUserId, snapshot);
+        } catch (mergeError) {
+          return { error: mergeError };
+        }
+      }
+      return { error: null };
+    },
+    [ratedMovies, signIn, mergeRatings]
+  );
   const {
     services,
     setServices,
@@ -355,6 +388,7 @@ export default function App() {
             hasLocalRatings={hasLocalRatings}
             createAccount={createAccount}
             signIn={signIn}
+            signInAndMerge={signInAndMerge}
             signOut={signOut}
             requestPasswordReset={requestPasswordReset}
             services={services}

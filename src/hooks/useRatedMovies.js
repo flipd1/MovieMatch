@@ -106,7 +106,62 @@ export function useRatedMovies(userId) {
     [userId, loadRatings]
   );
 
+  // Folds another session's ratings into `targetUserId`'s — used when
+  // signing into a real account from a browser that already has its own
+  // anonymous ratings, and the user chose to keep both rather than
+  // discard the local ones. `sourceRatedMovies` has to be captured by the
+  // caller *before* the session switch: once it's switched, RLS blocks
+  // reading the old (now different auth.uid()) session's rows entirely,
+  // even though they still exist in the table. Existing ratings on the
+  // target account always win — this only fills in movies the account
+  // doesn't already have a rating for, it never overwrites one.
+  const mergeRatings = useCallback(async (targetUserId, sourceRatedMovies) => {
+    if (!isSupabaseConfigured || !targetUserId) return;
+
+    const sourceEntries = Object.values(sourceRatedMovies).filter(
+      (m) => m.rating > 0
+    );
+    if (!sourceEntries.length) return;
+
+    const { data: existing, error: fetchError } = await supabase
+      .from("ratings")
+      .select("movie_id")
+      .eq("user_id", targetUserId);
+    if (fetchError) throw fetchError;
+
+    const existingIds = new Set((existing ?? []).map((r) => r.movie_id));
+    const toMerge = sourceEntries.filter((m) => !existingIds.has(m.id));
+    if (!toMerge.length) return;
+
+    const { error: upsertError } = await supabase.from("ratings").upsert(
+      toMerge.map((m) => ({
+        user_id: targetUserId,
+        movie_id: m.id,
+        rating: m.rating,
+      })),
+      { onConflict: "user_id,movie_id" }
+    );
+    if (upsertError) throw upsertError;
+
+    // This call spans the auth transition (it's invoked right after
+    // signing into `targetUserId`, which may not match this closure's own
+    // `userId` yet — `mergeRatings` was created on the render *before*
+    // that swap). Rather than trying to reload via `userId`/`loadRatings`
+    // (both stale here, and racing the reload that `userId` changing
+    // triggers on its own elsewhere), merge straight into local state
+    // using the snapshot's already-cached movie details — `setRatedMovies`
+    // is a stable setter, so this lands correctly regardless of whether
+    // that other reload fires before or after this.
+    setRatedMovies((prev) => {
+      const next = { ...prev };
+      toMerge.forEach((m) => {
+        next[m.id] = { ...m };
+      });
+      return next;
+    });
+  }, []);
+
   const list = Object.values(ratedMovies).sort((a, b) => b.ratedAt - a.ratedAt);
 
-  return { ratedMovies, list, rateMovie, loading, error };
+  return { ratedMovies, list, rateMovie, mergeRatings, loading, error };
 }

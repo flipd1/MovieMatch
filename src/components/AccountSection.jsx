@@ -35,6 +35,7 @@ export default function AccountSection({
   hasLocalRatings,
   createAccount,
   signIn,
+  signInAndMerge,
   signOut,
   requestPasswordReset,
 }) {
@@ -120,11 +121,12 @@ export default function AccountSection({
     setCreateStatus(stillAnonymous ? "sent" : "done");
   };
 
-  const performSignIn = async (nextEmail, nextPassword) => {
+  const performSignIn = async (nextEmail, nextPassword, merge) => {
     setSignInStatus("sending");
     setSignInErrorMessage(null);
 
-    const { error } = await signIn({ email: nextEmail, password: nextPassword });
+    const signInFn = merge ? signInAndMerge : signIn;
+    const { error } = await signInFn({ email: nextEmail, password: nextPassword });
     if (error) {
       setSignInStatus("error");
       setSignInErrorMessage(friendlyErrorMessage(error));
@@ -160,10 +162,10 @@ export default function AccountSection({
     await performSignIn(trimmed, signInPassword);
   };
 
-  const handleConfirmCollision = async () => {
+  const handleConfirmCollision = async (merge) => {
     const pending = pendingSignIn;
     setPendingSignIn(null);
-    if (pending) await performSignIn(pending.email, pending.password);
+    if (pending) await performSignIn(pending.email, pending.password, merge);
   };
 
   const handleForgotSubmit = async (e) => {
@@ -428,25 +430,33 @@ export default function AccountSection({
                 This browser already has some ratings that aren&apos;t tied
                 to any account. Signing in will switch to{" "}
                 <span className="font-medium">{pendingSignIn.email}</span>
-                &apos;s account instead — this browser&apos;s local ratings
-                won&apos;t show up here anymore (they&apos;re not deleted,
-                just no longer the active session).
+                &apos;s account — you can bring this browser&apos;s local
+                ratings along (movies your account hasn&apos;t already
+                rated), or leave them behind (they&apos;re not deleted,
+                just no longer tied to your active session).
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="space-y-2">
               <button
                 type="button"
-                onClick={() => setPendingSignIn(null)}
-                className="flex-1 text-sm font-medium bg-fill hover:bg-fill-hover text-fg rounded-lg py-2 transition-colors cursor-pointer"
+                onClick={() => handleConfirmCollision(true)}
+                className="w-full text-sm font-medium bg-amber-400 hover:bg-amber-300 text-black rounded-lg py-2 transition-colors cursor-pointer"
               >
-                Cancel
+                Sign In &amp; Merge Ratings
               </button>
               <button
                 type="button"
-                onClick={handleConfirmCollision}
-                className="flex-1 text-sm font-medium bg-amber-400 hover:bg-amber-300 text-black rounded-lg py-2 transition-colors cursor-pointer"
+                onClick={() => handleConfirmCollision(false)}
+                className="w-full text-sm font-medium bg-fill hover:bg-fill-hover text-fg rounded-lg py-2 transition-colors cursor-pointer"
               >
-                Sign In Anyway
+                Sign In, Discard Local Ratings
+              </button>
+              <button
+                type="button"
+                onClick={() => setPendingSignIn(null)}
+                className="w-full text-xs font-medium text-fg-muted hover:text-fg underline cursor-pointer"
+              >
+                Cancel
               </button>
             </div>
           </div>

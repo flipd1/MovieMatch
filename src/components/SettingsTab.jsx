@@ -11,6 +11,7 @@ export default function SettingsTab({
   hasLocalRatings,
   createAccount,
   signIn,
+  signInAndMerge,
   signOut,
   requestPasswordReset,
   services,
@@ -43,6 +44,7 @@ export default function SettingsTab({
           hasLocalRatings={hasLocalRatings}
           createAccount={createAccount}
           signIn={signIn}
+          signInAndMerge={signInAndMerge}
           signOut={signOut}
           requestPasswordReset={requestPasswordReset}
         />

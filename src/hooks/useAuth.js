@@ -137,12 +137,16 @@ export function useAuth() {
       return { error: captchaError };
     }
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
       options: { captchaToken },
     });
-    return { error: signInError };
+    // The caller may need the new session's user id immediately (e.g. to
+    // merge the outgoing anonymous session's data into it) — waiting for
+    // this hook's own `userId` to update would mean waiting on a
+    // re-render, which is too late for that.
+    return { error: signInError, userId: data.user?.id ?? null };
   }, []);
 
   // Ends the current (real) session and starts a brand-new anonymous one
