@@ -181,7 +181,16 @@ export default function App() {
         <div className="max-w-6xl mx-auto px-6 py-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
           <div className="flex items-center justify-between gap-4">
             <h1 className="text-xl font-semibold tracking-tight shrink-0">
-              Movie<span className="text-accent-fg">Match</span>
+              {/* The wordmark's brand color stays fixed across themes
+                  (matching the "Watch Tonight" amber-400 buttons etc.)
+                  rather than using the theme-adaptive --color-accent-fg
+                  variable — that variable is intentionally a darker amber
+                  in light mode for readability as body text (see the
+                  "Because you rated X" reason text and the Watch Tonight
+                  low-match warning), which would look washed out here but
+                  is the wrong tradeoff for a logo, where brand consistency
+                  matters more than adapting per theme. */}
+              Movie<span className="text-amber-400">Match</span>
             </h1>
             {/* Same toggle as the sm:ml-auto one below — shown here so it
                 stays paired with the logo on its own row on narrow
