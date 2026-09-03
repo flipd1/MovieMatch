@@ -113,7 +113,7 @@ export default function SignInModal({
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-sm bg-surface-strong rounded-xl ring-1 ring-border my-auto p-6 sm:p-8 space-y-5"
+        className="relative w-full max-w-sm bg-surface-strong rounded-xl ring-1 ring-border sm:my-auto p-6 sm:p-8 space-y-5"
         onClick={(e) => e.stopPropagation()}
       >
         <button
