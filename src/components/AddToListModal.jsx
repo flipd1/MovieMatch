@@ -119,7 +119,7 @@ export default function AddToListModal({
                 onChange={(e) => setNewListName(e.target.value)}
                 placeholder="New list name…"
                 maxLength={100}
-                className="flex-1 bg-surface-muted border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:ring-2 focus:ring-border-strong"
+                className="flex-1 bg-surface-muted border border-border rounded-lg px-3 py-2 text-base text-fg placeholder:text-fg-faint focus:outline-none focus:ring-2 focus:ring-border-strong"
               />
               <button
                 type="submit"

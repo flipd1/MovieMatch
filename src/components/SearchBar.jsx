@@ -206,7 +206,7 @@ export default function SearchBar({ ratedMovies, onRate, onOpen }) {
             }}
             onFocus={() => setIsOpen(true)}
             placeholder="Search for a movie…"
-            className="w-full bg-surface border border-border rounded-full pl-10 pr-4 py-2.5 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:ring-2 focus:ring-border-strong focus:border-border-strong transition-all"
+            className="w-full bg-surface border border-border rounded-full pl-10 pr-4 py-2.5 text-base text-fg placeholder:text-fg-faint focus:outline-none focus:ring-2 focus:ring-border-strong focus:border-border-strong transition-all"
           />
         </div>
 

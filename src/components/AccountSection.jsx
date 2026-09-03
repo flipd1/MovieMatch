@@ -158,7 +158,7 @@ export default function AccountSection({
                 value={inputEmail}
                 onChange={(e) => setInputEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="flex-1 min-w-0 bg-surface-muted border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:ring-2 focus:ring-border-strong"
+                className="flex-1 min-w-0 bg-surface-muted border border-border rounded-lg px-3 py-2 text-base text-fg placeholder:text-fg-faint focus:outline-none focus:ring-2 focus:ring-border-strong"
               />
               <button
                 type="submit"
@@ -202,7 +202,7 @@ export default function AccountSection({
                   value={signInEmail}
                   onChange={(e) => setSignInEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="flex-1 min-w-0 bg-surface-muted border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:ring-2 focus:ring-border-strong"
+                  className="flex-1 min-w-0 bg-surface-muted border border-border rounded-lg px-3 py-2 text-base text-fg placeholder:text-fg-faint focus:outline-none focus:ring-2 focus:ring-border-strong"
                 />
                 <button
                   type="submit"
