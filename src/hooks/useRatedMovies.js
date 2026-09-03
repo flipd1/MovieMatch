@@ -1,13 +1,61 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getMovieDetails } from "../lib/tmdb";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
+
+async function fetchRatedMovies(userId) {
+  const { data, error: fetchError } = await supabase
+    .from("ratings")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (fetchError) throw fetchError;
+
+  const rows = data ?? [];
+  const details = await Promise.all(
+    rows.map((row) => getMovieDetails(row.movie_id).catch(() => null))
+  );
+
+  const next = {};
+  rows.forEach((row, i) => {
+    const movie = details[i];
+    next[row.movie_id] = {
+      id: row.movie_id,
+      rating: row.rating,
+      title: movie?.title ?? `Movie #${row.movie_id}`,
+      poster_path: movie?.poster_path ?? null,
+      release_date: movie?.release_date ?? "",
+      genre_ids: movie?.genres?.map((g) => g.id) ?? [],
+      vote_average: movie?.vote_average ?? null,
+      ratedAt: new Date(row.created_at).getTime(),
+    };
+  });
+
+  return next;
+}
 
 export function useRatedMovies(userId) {
   const [ratedMovies, setRatedMovies] = useState({});
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [error, setError] = useState(null);
 
+  // loadRatings (triggered by userId changing) and mergeRatings' own
+  // reload (triggered right after a sign-in-and-merge) can both be
+  // in-flight around the same auth transition, in either order, with no
+  // guarantee which finishes first — a plain "last setRatedMovies call
+  // wins" is really "whichever network round trip happens to finish
+  // last wins", which isn't reliable (confirmed: it picked the stale one
+  // often enough in practice that merged ratings needed a manual page
+  // reload to show up). This counter fixes that properly: every fetch
+  // claims the next generation number when it *starts*, and only commits
+  // its result if that's still the latest generation by the time it
+  // finishes — so whichever fetch started most recently always wins,
+  // regardless of which one's network calls happen to resolve first.
+  const generationRef = useRef(0);
+
   const loadRatings = useCallback(async () => {
+    const myGeneration = ++generationRef.current;
+
     if (!isSupabaseConfigured || !userId) {
       setLoading(false);
       return;
@@ -17,39 +65,13 @@ export function useRatedMovies(userId) {
     setError(null);
 
     try {
-      const { data, error: fetchError } = await supabase
-        .from("ratings")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
-
-      if (fetchError) throw fetchError;
-
-      const rows = data ?? [];
-      const details = await Promise.all(
-        rows.map((row) => getMovieDetails(row.movie_id).catch(() => null))
-      );
-
-      const next = {};
-      rows.forEach((row, i) => {
-        const movie = details[i];
-        next[row.movie_id] = {
-          id: row.movie_id,
-          rating: row.rating,
-          title: movie?.title ?? `Movie #${row.movie_id}`,
-          poster_path: movie?.poster_path ?? null,
-          release_date: movie?.release_date ?? "",
-          genre_ids: movie?.genres?.map((g) => g.id) ?? [],
-          vote_average: movie?.vote_average ?? null,
-          ratedAt: new Date(row.created_at).getTime(),
-        };
-      });
-
+      const next = await fetchRatedMovies(userId);
+      if (generationRef.current !== myGeneration) return; // superseded
       setRatedMovies(next);
     } catch (e) {
-      setError(e);
+      if (generationRef.current === myGeneration) setError(e);
     } finally {
-      setLoading(false);
+      if (generationRef.current === myGeneration) setLoading(false);
     }
   }, [userId]);
 
@@ -143,22 +165,13 @@ export function useRatedMovies(userId) {
     );
     if (upsertError) throw upsertError;
 
-    // This call spans the auth transition (it's invoked right after
-    // signing into `targetUserId`, which may not match this closure's own
-    // `userId` yet — `mergeRatings` was created on the render *before*
-    // that swap). Rather than trying to reload via `userId`/`loadRatings`
-    // (both stale here, and racing the reload that `userId` changing
-    // triggers on its own elsewhere), merge straight into local state
-    // using the snapshot's already-cached movie details — `setRatedMovies`
-    // is a stable setter, so this lands correctly regardless of whether
-    // that other reload fires before or after this.
-    setRatedMovies((prev) => {
-      const next = { ...prev };
-      toMerge.forEach((m) => {
-        next[m.id] = { ...m };
-      });
-      return next;
-    });
+    // Claimed *after* the upsert commits, right before the reload it
+    // guards — see the generationRef comment above for why this is
+    // needed rather than a plain setRatedMovies call here.
+    const myGeneration = ++generationRef.current;
+    const next = await fetchRatedMovies(targetUserId);
+    if (generationRef.current !== myGeneration) return; // superseded
+    setRatedMovies(next);
   }, []);
 
   const list = Object.values(ratedMovies).sort((a, b) => b.ratedAt - a.ratedAt);
