@@ -167,11 +167,27 @@ export function useRatedMovies(userId) {
 
     // Claimed *after* the upsert commits, right before the reload it
     // guards — see the generationRef comment above for why this is
-    // needed rather than a plain setRatedMovies call here.
+    // needed rather than a plain setRatedMovies call here. Whichever call
+    // (this or loadRatings) claims a generation, it also has to be the
+    // one to eventually clear `loading` for that generation — the first
+    // version of this only guarded setRatedMovies/setError, so when
+    // mergeRatings superseded an in-flight loadRatings call, that call's
+    // own `finally` correctly skipped setLoading(false) (per the guard),
+    // but nothing else ever cleared it either, since mergeRatings didn't
+    // touch `loading` at all — leaving the UI stuck showing loading
+    // skeletons until a full page reload reset everything.
     const myGeneration = ++generationRef.current;
-    const next = await fetchRatedMovies(targetUserId);
-    if (generationRef.current !== myGeneration) return; // superseded
-    setRatedMovies(next);
+    setLoading(true);
+    try {
+      const next = await fetchRatedMovies(targetUserId);
+      if (generationRef.current !== myGeneration) return; // superseded
+      setRatedMovies(next);
+    } catch (e) {
+      if (generationRef.current === myGeneration) setError(e);
+      throw e;
+    } finally {
+      if (generationRef.current === myGeneration) setLoading(false);
+    }
   }, []);
 
   const list = Object.values(ratedMovies).sort((a, b) => b.ratedAt - a.ratedAt);
