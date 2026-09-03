@@ -121,6 +121,7 @@ export default function App() {
   const [watchTonightOpen, setWatchTonightOpen] = useState(false);
   const [addToListMovie, setAddToListMovie] = useState(null);
   const [activeTab, setActiveTab] = useState("discover");
+  const [accountFocusTarget, setAccountFocusTarget] = useState(null);
   const scrollPositions = useRef({
     discover: 0,
     theaters: 0,
@@ -170,6 +171,15 @@ export default function App() {
     [activeTab]
   );
 
+  const handleHeaderSignIn = useCallback(() => {
+    handleTabChange("settings");
+    setAccountFocusTarget("signin");
+  }, [handleTabChange]);
+
+  const clearAccountFocusTarget = useCallback(() => {
+    setAccountFocusTarget(null);
+  }, []);
+
   useLayoutEffect(() => {
     const y = scrollPositions.current[activeTab] ?? 0;
     window.scrollTo(0, y);
@@ -202,7 +212,7 @@ export default function App() {
               {isAnonymous && (
                 <button
                   type="button"
-                  onClick={() => handleTabChange("settings")}
+                  onClick={handleHeaderSignIn}
                   className="text-sm font-medium text-fg-muted hover:text-fg cursor-pointer"
                 >
                   Sign In
@@ -220,7 +230,7 @@ export default function App() {
             {isAnonymous && (
               <button
                 type="button"
-                onClick={() => handleTabChange("settings")}
+                onClick={handleHeaderSignIn}
                 className="text-sm font-medium text-fg-muted hover:text-fg cursor-pointer"
               >
                 Sign In
@@ -406,6 +416,8 @@ export default function App() {
             onIsProChange={setIsPro}
             earlyAccess={earlyAccess}
             onEarlyAccessChange={setEarlyAccess}
+            accountFocusTarget={accountFocusTarget}
+            onAccountFocusHandled={clearAccountFocusTarget}
           />
         </div>
       </main>

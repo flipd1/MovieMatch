@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
@@ -38,9 +38,13 @@ export default function AccountSection({
   signInAndMerge,
   signOut,
   requestPasswordReset,
+  focusTarget,
+  onFocusHandled,
 }) {
   const [copied, setCopied] = useState(false);
   const [signOutPending, setSignOutPending] = useState(false);
+  const signInEmailRef = useRef(null);
+  const createEmailRef = useRef(null);
 
   // Create Account
   const [createEmail, setCreateEmail] = useState("");
@@ -64,6 +68,23 @@ export default function AccountSection({
   const [forgotErrorMessage, setForgotErrorMessage] = useState(null);
 
   const linked = !isAnonymous && Boolean(email);
+
+  // Scrolls to and focuses the Sign In or Create Account form when the
+  // header's "Sign In" button (or the cross-link between the two forms) is
+  // clicked — this section stays mounted at all times (Settings is a tab
+  // whose content is only CSS-hidden, not unmounted), so a plain effect
+  // keyed off the target is enough; no need to wait for anything to mount.
+  const focusField = (ref) => {
+    ref.current?.focus();
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
+  useEffect(() => {
+    if (!focusTarget || linked) return;
+    if (focusTarget === "signin") focusField(signInEmailRef);
+    if (focusTarget === "create") focusField(createEmailRef);
+    onFocusHandled?.();
+  }, [focusTarget, linked, onFocusHandled]);
 
   const handleCopy = async () => {
     try {
@@ -215,80 +236,6 @@ export default function AccountSection({
       ) : (
         <div className="space-y-6">
           <div>
-            <div>
-              <p className="text-sm font-medium text-fg mb-1">
-                Create Account
-              </p>
-              <p className="text-sm text-fg-muted">
-                Right now your ratings and lists are saved only to this
-                browser on this device — switch to a different phone,
-                computer, or even a different browser on the same device,
-                and they won&apos;t be there.
-              </p>
-              <p className="text-sm text-fg-muted mt-2">
-                Creating an account fixes that: sign in with the same email
-                and password anywhere, and everything you&apos;ve rated and
-                saved comes with you. It&apos;s completely optional —
-                MovieMatch works fine without it.
-              </p>
-            </div>
-
-            {createStatus === "sent" || createStatus === "done" ? (
-              <p className="text-sm text-emerald-600 dark:text-emerald-400 mt-3">
-                {createStatus === "done"
-                  ? "Account created — you're all set."
-                  : `We sent a confirmation link to ${createdEmail}. Your password is already set — click the link to finish creating your account.`}
-              </p>
-            ) : (
-              <form onSubmit={handleCreateSubmit} className="space-y-2 mt-3">
-                <input
-                  type="email"
-                  value={createEmail}
-                  onChange={(e) => setCreateEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  autoComplete="email"
-                  className="w-full bg-surface-muted border border-border rounded-lg px-3 py-2 text-base text-fg placeholder:text-fg-faint focus:outline-none focus:ring-2 focus:ring-border-strong"
-                />
-                <input
-                  type="password"
-                  value={createPassword}
-                  onChange={(e) => setCreatePassword(e.target.value)}
-                  placeholder="Password (min. 8 characters)"
-                  autoComplete="new-password"
-                  className="w-full bg-surface-muted border border-border rounded-lg px-3 py-2 text-base text-fg placeholder:text-fg-faint focus:outline-none focus:ring-2 focus:ring-border-strong"
-                />
-                <input
-                  type="password"
-                  value={createConfirmPassword}
-                  onChange={(e) => setCreateConfirmPassword(e.target.value)}
-                  placeholder="Confirm password"
-                  autoComplete="new-password"
-                  className="w-full bg-surface-muted border border-border rounded-lg px-3 py-2 text-base text-fg placeholder:text-fg-faint focus:outline-none focus:ring-2 focus:ring-border-strong"
-                />
-                <button
-                  type="submit"
-                  disabled={
-                    createStatus === "sending" ||
-                    !createEmail.trim() ||
-                    !createPassword
-                  }
-                  className="w-full text-sm font-medium bg-amber-400 hover:bg-amber-300 disabled:bg-surface-muted disabled:text-fg-faint disabled:cursor-not-allowed text-black rounded-lg py-2 transition-colors cursor-pointer"
-                >
-                  {createStatus === "sending"
-                    ? "Creating…"
-                    : "Create Account"}
-                </button>
-              </form>
-            )}
-
-            {createStatus === "error" && createErrorMessage && (
-              <p className="text-xs text-red-600 dark:text-red-400 mt-2">
-                {createErrorMessage}
-              </p>
-            )}
-          </div>
-
-          <div className="border-t border-border pt-4">
             <p className="text-sm font-medium text-fg mb-1">Sign In</p>
             <p className="text-sm text-fg-muted mb-3">
               Already created an account on another device? Sign in to bring
@@ -347,6 +294,7 @@ export default function AccountSection({
               <div className="space-y-2">
                 <form onSubmit={handleSignInSubmit} className="space-y-2">
                   <input
+                    ref={signInEmailRef}
                     type="email"
                     value={signInEmail}
                     onChange={(e) => setSignInEmail(e.target.value)}
@@ -379,14 +327,98 @@ export default function AccountSection({
                     {signInErrorMessage}
                   </p>
                 )}
-                <button
-                  type="button"
-                  onClick={() => setShowForgotPassword(true)}
-                  className="text-xs font-medium text-fg-muted hover:text-fg underline cursor-pointer"
-                >
-                  Forgot password?
-                </button>
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="text-xs font-medium text-fg-muted hover:text-fg underline cursor-pointer"
+                  >
+                    Forgot password?
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => focusField(createEmailRef)}
+                    className="text-xs font-medium text-fg-muted hover:text-fg underline cursor-pointer"
+                  >
+                    Don&apos;t have an account? Create one
+                  </button>
+                </div>
               </div>
+            )}
+          </div>
+
+          <div className="border-t border-border pt-4">
+            <div>
+              <p className="text-sm font-medium text-fg mb-1">
+                Create Account
+              </p>
+              <p className="text-sm text-fg-muted">
+                Right now your ratings and lists are saved only to this
+                browser on this device — switch to a different phone,
+                computer, or even a different browser on the same device,
+                and they won&apos;t be there.
+              </p>
+              <p className="text-sm text-fg-muted mt-2">
+                Creating an account fixes that: sign in with the same email
+                and password anywhere, and everything you&apos;ve rated and
+                saved comes with you. It&apos;s completely optional —
+                MovieMatch works fine without it.
+              </p>
+            </div>
+
+            {createStatus === "sent" || createStatus === "done" ? (
+              <p className="text-sm text-emerald-600 dark:text-emerald-400 mt-3">
+                {createStatus === "done"
+                  ? "Account created — you're all set."
+                  : `We sent a confirmation link to ${createdEmail}. Your password is already set — click the link to finish creating your account.`}
+              </p>
+            ) : (
+              <form onSubmit={handleCreateSubmit} className="space-y-2 mt-3">
+                <input
+                  ref={createEmailRef}
+                  type="email"
+                  value={createEmail}
+                  onChange={(e) => setCreateEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                  className="w-full bg-surface-muted border border-border rounded-lg px-3 py-2 text-base text-fg placeholder:text-fg-faint focus:outline-none focus:ring-2 focus:ring-border-strong"
+                />
+                <input
+                  type="password"
+                  value={createPassword}
+                  onChange={(e) => setCreatePassword(e.target.value)}
+                  placeholder="Password (min. 8 characters)"
+                  autoComplete="new-password"
+                  className="w-full bg-surface-muted border border-border rounded-lg px-3 py-2 text-base text-fg placeholder:text-fg-faint focus:outline-none focus:ring-2 focus:ring-border-strong"
+                />
+                <input
+                  type="password"
+                  value={createConfirmPassword}
+                  onChange={(e) => setCreateConfirmPassword(e.target.value)}
+                  placeholder="Confirm password"
+                  autoComplete="new-password"
+                  className="w-full bg-surface-muted border border-border rounded-lg px-3 py-2 text-base text-fg placeholder:text-fg-faint focus:outline-none focus:ring-2 focus:ring-border-strong"
+                />
+                <button
+                  type="submit"
+                  disabled={
+                    createStatus === "sending" ||
+                    !createEmail.trim() ||
+                    !createPassword
+                  }
+                  className="w-full text-sm font-medium bg-amber-400 hover:bg-amber-300 disabled:bg-surface-muted disabled:text-fg-faint disabled:cursor-not-allowed text-black rounded-lg py-2 transition-colors cursor-pointer"
+                >
+                  {createStatus === "sending"
+                    ? "Creating…"
+                    : "Create Account"}
+                </button>
+              </form>
+            )}
+
+            {createStatus === "error" && createErrorMessage && (
+              <p className="text-xs text-red-600 dark:text-red-400 mt-2">
+                {createErrorMessage}
+              </p>
             )}
           </div>
         </div>

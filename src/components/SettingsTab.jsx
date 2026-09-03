@@ -20,6 +20,8 @@ export default function SettingsTab({
   onIsProChange,
   earlyAccess,
   onEarlyAccessChange,
+  accountFocusTarget,
+  onAccountFocusHandled,
 }) {
   const [privacyOpen, setPrivacyOpen] = useState(false);
 
@@ -47,6 +49,8 @@ export default function SettingsTab({
           signInAndMerge={signInAndMerge}
           signOut={signOut}
           requestPasswordReset={requestPasswordReset}
+          focusTarget={accountFocusTarget}
+          onFocusHandled={onAccountFocusHandled}
         />
       </section>
 
