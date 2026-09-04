@@ -56,7 +56,15 @@ export default function MovieCard({
       }}
       className="group relative rounded-lg overflow-hidden bg-surface ring-1 ring-border hover:ring-border-strong transition-all duration-200 cursor-pointer hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/10 dark:hover:shadow-black/60"
     >
-      <div className="aspect-[2/3] w-full bg-surface-muted overflow-hidden">
+      {/* Needs its own `relative` — without it, the badge/date-label/
+          rating-badge overlays below (all `absolute`) fall back to the
+          outer card div as their positioning context. That was invisible
+          while the card's height equaled the poster's height, but once
+          the mobile star strip below made the card taller than the
+          poster, `bottom-2` etc. started measuring from the new (taller)
+          card bottom instead of the poster's, pulling them down into the
+          strip. */}
+      <div className="relative aspect-[2/3] w-full bg-surface-muted overflow-hidden">
         {poster ? (
           <img
             src={poster}
@@ -170,21 +178,24 @@ export default function MovieCard({
               </span>
             </div>
           )}
-
-          {/* Mobile has no hover to reveal the rating row above, so give it
-              its own always-visible, compact star strip instead — lets you
-              rate straight from the grid without opening the detail modal.
-              Sits top-right (in place of the desktop-only numeric badge
-              above) since bottom-left is already taken by the date pill on
-              cards that have one. Desktop keeps the hover overlay and skips
-              this entirely. */}
-          <div
-            className="sm:hidden absolute top-2 right-2 bg-black/70 backdrop-blur-sm rounded-full px-1.5 py-1"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <StarRating rating={rating} onRate={(r) => onRate(movie, r)} />
-          </div>
         </div>
+      </div>
+
+      {/* Mobile has no hover to reveal the rating row above, so give it its
+          own always-visible, compact strip instead — lets you rate straight
+          from the grid without opening the detail modal. Deliberately NOT
+          another absolutely-positioned corner pill layered on the poster:
+          cards can carry a badge (top-left) AND a date pill (bottom-left)
+          at once (e.g. In Theaters' "Matches Your Taste"), and on a narrow
+          2-column mobile card there's no corner left that doesn't visually
+          collide with one of them. A plain strip below the poster — outside
+          that overlay system entirely — can't overlap anything on it.
+          Desktop keeps the hover overlay and skips this whole strip. */}
+      <div
+        className="sm:hidden flex items-center justify-center py-1.5 bg-surface-muted"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <StarRating rating={rating} onRate={(r) => onRate(movie, r)} />
       </div>
     </div>
   );
