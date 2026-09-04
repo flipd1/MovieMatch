@@ -120,7 +120,6 @@ export default function RecommendationsSection({
   const refineFilterCount =
     (selectedGenreIds.length ? 1 : 0) +
     (selectedDirector ? 1 : 0) +
-    (sortId ? 1 : 0) +
     (watchableOnly ? 1 : 0);
 
   const emptyMessage = activeFilters.length
@@ -181,10 +180,12 @@ export default function RecommendationsSection({
           />
         </div>
 
-        {/* Refine controls (mobile) — collapsed into one "Filters" button
-            that opens a bottom sheet, instead of Genre/Director/Sort/
-            watchable each fighting for their own row on a small screen. */}
-        <div className="sm:hidden mt-3 pt-3 border-t border-border">
+        {/* Refine controls (mobile) — Genre/Director/watchable collapsed
+            into one "Filters" button that opens a bottom sheet, but Sort
+            by stays out here next to it since it's not really a "filter"
+            (nothing gets excluded, just reordered) and is reached for
+            often enough to deserve its own visible control. */}
+        <div className="sm:hidden flex items-center gap-3 mt-3 pt-3 border-t border-border">
           <button
             type="button"
             onClick={() => setMobileFiltersOpen(true)}
@@ -207,6 +208,7 @@ export default function RecommendationsSection({
               </span>
             )}
           </button>
+          <SortControl sortId={sortId} onChange={setSortId} />
         </div>
       </div>
 
@@ -230,12 +232,6 @@ export default function RecommendationsSection({
                 selected={selectedDirector}
                 onSelect={setSelectedDirector}
               />
-            </div>
-            <div className="space-y-2">
-              <p className="text-xs uppercase tracking-wide text-fg-muted">
-                Sort by
-              </p>
-              <SortControl sortId={sortId} onChange={setSortId} />
             </div>
             <div className="pt-1 border-t border-border">
               <WatchableOnlyToggle
