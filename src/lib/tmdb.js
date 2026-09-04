@@ -144,8 +144,61 @@ export function getWatchProviders(movieId) {
   return tmdbFetch(`/movie/${movieId}/watch/providers`);
 }
 
+export function searchPeople(query, page = 1) {
+  if (!query?.trim()) return Promise.resolve({ results: [] });
+  return tmdbFetch("/search/person", { query, page, include_adult: false });
+}
+
+export function getPersonMovieCredits(personId) {
+  return tmdbFetch(`/person/${personId}/movie_credits`);
+}
+
+const directedMovieIdsCache = new Map();
+
+// The director filter needs "every movie this person directed", which is
+// far cheaper as one /person/{id}/movie_credits request (filtered to crew
+// entries with job "Director") than fetching /movie/{id}/credits for every
+// candidate movie just to check who directed it. Cached per person, since
+// picking the same director again (or across sections) shouldn't refetch.
+export function getCachedDirectedMovieIds(personId) {
+  if (!directedMovieIdsCache.has(personId)) {
+    directedMovieIdsCache.set(
+      personId,
+      getPersonMovieCredits(personId)
+        .then(
+          (data) =>
+            new Set(
+              (data.crew ?? [])
+                .filter((credit) => credit.job === "Director")
+                .map((credit) => credit.id)
+            )
+        )
+        .catch(() => new Set())
+    );
+  }
+  return directedMovieIdsCache.get(personId);
+}
+
 export function getMovieDetails(movieId) {
   return tmdbFetch(`/movie/${movieId}`);
+}
+
+const movieDetailsCache = new Map();
+
+// Cached full movie-details fetch, keyed by movie id — list/search/discover
+// endpoints never include `runtime` (only the single-movie /movie/{id}
+// endpoint does), so card-level runtime display needs its own fetch per
+// movie. Every card showing the same movie (across grids, and later the
+// detail modal) shares one cached request instead of refetching, which
+// matters here since a single grid can render dozens of cards at once.
+export function getCachedMovieDetails(movieId) {
+  if (!movieDetailsCache.has(movieId)) {
+    movieDetailsCache.set(
+      movieId,
+      getMovieDetails(movieId).catch(() => null)
+    );
+  }
+  return movieDetailsCache.get(movieId);
 }
 
 export function getMovieCredits(movieId) {

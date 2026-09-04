@@ -228,6 +228,7 @@ export default function App() {
             ratedMovies={ratedMovies}
             onRate={rateMovie}
             onOpen={openMovie}
+            openMovieId={openMovieId}
           />
           <div className="hidden sm:flex items-center gap-3 sm:ml-auto">
             {isAnonymous && (

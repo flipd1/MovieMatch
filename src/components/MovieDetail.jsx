@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import {
   formatRuntime,
+  getCachedMovieDetails,
   getMovieCredits,
-  getMovieDetails,
   getMovieVideos,
   posterUrl,
   yearFromDate,
@@ -31,7 +31,7 @@ export default function MovieDetail({
     setTrailer(null);
 
     Promise.all([
-      getMovieDetails(movieId),
+      getCachedMovieDetails(movieId),
       getMovieCredits(movieId).catch(() => ({ cast: [] })),
       getMovieVideos(movieId).catch(() => ({ results: [] })),
     ])

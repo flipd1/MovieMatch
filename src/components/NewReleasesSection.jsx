@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react";
 import { formatReleaseDate, getNewReleases } from "../lib/tmdb";
 import { filterByMood } from "../lib/moods";
+import { filterByGenres } from "../lib/genreFilter";
+import { sortMovies } from "../lib/sortMovies";
+import { useDirectorFilter } from "../hooks/useDirectorFilter";
 import MovieCard from "./MovieCard";
 import MoodFilter from "./MoodFilter";
+import GenreFilter from "./GenreFilter";
+import DirectorFilter from "./DirectorFilter";
+import SortControl from "./SortControl";
 import ServiceCheckboxes from "./ServiceCheckboxes";
 
 const RELEASE_PAGES = 3;
@@ -24,7 +30,14 @@ export default function NewReleasesSection({
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [moodId, setMoodId] = useState(null);
+  const [selectedGenreIds, setSelectedGenreIds] = useState([]);
+  const [selectedDirector, setSelectedDirector] = useState(null);
+  const [sortId, setSortId] = useState(null);
   const [draftServices, setDraftServices] = useState(services);
+
+  const { directedMovieIds, loading: directorLoading } = useDirectorFilter(
+    selectedDirector?.id ?? null
+  );
 
   useEffect(() => {
     setDraftServices(services);
@@ -105,9 +118,21 @@ export default function NewReleasesSection({
     );
   }
 
-  const displayMovies = filterByMood(movies, moodId);
-  const emptyMessage = moodId
-    ? "Nothing matches this mood right now — try another."
+  const moodFiltered = filterByMood(movies, moodId);
+  const genreFiltered = filterByGenres(moodFiltered, selectedGenreIds);
+  const directorFiltered =
+    selectedDirector && directedMovieIds
+      ? genreFiltered.filter((movie) => directedMovieIds.has(movie.id))
+      : genreFiltered;
+  const displayMovies = sortMovies(directorFiltered, sortId);
+
+  const activeFilters = [];
+  if (moodId) activeFilters.push("mood");
+  if (selectedGenreIds.length) activeFilters.push("genre");
+  if (selectedDirector) activeFilters.push("director");
+
+  const emptyMessage = activeFilters.length
+    ? `Nothing matches your filters (${activeFilters.join(", ")}) right now — try adjusting them.`
     : "No recent releases found on your selected services right now.";
 
   return (
@@ -120,10 +145,21 @@ export default function NewReleasesSection({
       </div>
 
       <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
-        <MoodFilter activeMoodId={moodId} onChange={setMoodId} />
+        <div className="flex items-center gap-2 flex-wrap">
+          <MoodFilter activeMoodId={moodId} onChange={setMoodId} />
+          <GenreFilter
+            selectedGenreIds={selectedGenreIds}
+            onChange={setSelectedGenreIds}
+          />
+          <DirectorFilter
+            selected={selectedDirector}
+            onSelect={setSelectedDirector}
+          />
+        </div>
+        <SortControl sortId={sortId} onChange={setSortId} />
       </div>
 
-      {loading ? (
+      {loading || (selectedDirector && directorLoading) ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
           {Array.from({ length: 18 }).map((_, i) => (
             <div

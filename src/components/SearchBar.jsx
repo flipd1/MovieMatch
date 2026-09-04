@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { posterUrl, searchMovies, yearFromDate } from "../lib/tmdb";
+import MovieRuntime from "./MovieRuntime";
 import StarRating from "./StarRating";
 
 // Matches Tailwind's default `sm` breakpoint — below this, focusing the
@@ -10,13 +11,14 @@ import StarRating from "./StarRating";
 // independently underneath it.
 const MOBILE_QUERY = "(max-width: 639px)";
 
-export default function SearchBar({ ratedMovies, onRate, onOpen }) {
+export default function SearchBar({ ratedMovies, onRate, onOpen, openMovieId }) {
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebouncedValue(query, 300);
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [reopenOnDetailClose, setReopenOnDetailClose] = useState(false);
   const containerRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -57,20 +59,41 @@ export default function SearchBar({ ratedMovies, onRate, onOpen }) {
   const closeSearch = () => {
     setIsOpen(false);
     setQuery("");
+    setReopenOnDetailClose(false);
     inputRef.current?.blur();
   };
 
+  // Opening a movie's detail from a search result shouldn't discard the
+  // search itself — closing that modal should land back on the same query
+  // and results, not an empty search bar. So selecting a result only hides
+  // the dropdown/overlay (and defers to the effect below to bring it back
+  // once the detail modal closes); it never clears `query`, unlike an
+  // explicit cancel (closeSearch above), which still should.
+  useEffect(() => {
+    if (!openMovieId && reopenOnDetailClose) {
+      setReopenOnDetailClose(false);
+      setIsOpen(true);
+    }
+  }, [openMovieId, reopenOnDetailClose]);
+
   useEffect(() => {
     function handleClickOutside(e) {
-      // On mobile the overlay fills the whole screen, so there's no
-      // "outside" to detect this way — Cancel/Escape handle closing it
-      // instead (see below).
+      // Only an open dropdown/overlay can meaningfully be "clicked outside
+      // of" — without this guard, ANY click anywhere else in the app
+      // (e.g. the movie detail modal's own close button, opened from a
+      // search result) got treated as the user dismissing search, wiping
+      // the query before the reopen-on-close effect above ever got a
+      // chance to run. On mobile the overlay fills the whole screen, so
+      // there's no "outside" to detect this way either — Cancel/Escape
+      // handle closing it instead (see below).
+      if (!isOpen) return;
       if (
         containerRef.current &&
         !containerRef.current.contains(e.target)
       ) {
         setIsOpen(false);
         setQuery("");
+        setReopenOnDetailClose(false);
       }
     }
     function handleEscape(e) {
@@ -82,7 +105,7 @@ export default function SearchBar({ ratedMovies, onRate, onOpen }) {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleEscape);
     };
-  }, []);
+  }, [isOpen]);
 
   const overlayActive = isOpen && isMobile;
 
@@ -109,7 +132,9 @@ export default function SearchBar({ ratedMovies, onRate, onOpen }) {
 
   const handleSelect = (movie) => {
     onOpen?.(movie);
-    closeSearch();
+    setIsOpen(false);
+    setReopenOnDetailClose(true);
+    inputRef.current?.blur();
   };
 
   const showDropdown = isOpen && query.trim().length > 0;
@@ -157,6 +182,7 @@ export default function SearchBar({ ratedMovies, onRate, onOpen }) {
                   </p>
                   <p className="text-xs text-fg-muted">
                     {yearFromDate(movie.release_date)}
+                    <MovieRuntime movieId={movie.id} />
                   </p>
                 </div>
                 <StarRating

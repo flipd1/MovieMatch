@@ -83,6 +83,8 @@ const ALLOWED_PATHS = [
   /^\/movie\/\d+\/watch\/providers$/,
   /^\/movie\/\d+\/credits$/,
   /^\/movie\/\d+\/videos$/,
+  /^\/search\/person$/,
+  /^\/person\/\d+\/movie_credits$/,
 ];
 
 function isAllowedPath(path: string): boolean {

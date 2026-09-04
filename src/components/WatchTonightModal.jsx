@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
-import { getWatchProviders, logoUrl, posterUrl, yearFromDate } from "../lib/tmdb";
+import {
+  getMovieVideos,
+  getWatchProviders,
+  logoUrl,
+  posterUrl,
+  yearFromDate,
+} from "../lib/tmdb";
 import { buildCandidatePool } from "../lib/candidatePool";
+import { useMovieRuntime } from "../hooks/useMovieRuntime";
 import {
   extractProviderIds,
   getCachedProviderEntry,
@@ -23,6 +30,8 @@ export default function WatchTonightModal({
   const [step, setStep] = useState("select");
   const [queue, setQueue] = useState([]);
   const [cursor, setCursor] = useState(0);
+  const [trailer, setTrailer] = useState(null);
+  const [trailerLoading, setTrailerLoading] = useState(false);
 
   useEffect(() => {
     const handleEscape = (e) => {
@@ -90,6 +99,44 @@ export default function WatchTonightModal({
   const matchingProviders = current
     ? getMatchingProviders(current.providerEntry, selected)
     : [];
+  const runtime = useMovieRuntime(current?.movie.id);
+
+  // The candidate pool's movie objects (from discover/similar/recommendations
+  // endpoints) don't include videos — fetch the trailer the same way
+  // MovieDetail does, per movie, so "Show Me Another" swaps it out too.
+  useEffect(() => {
+    if (!current) {
+      setTrailer(null);
+      return;
+    }
+
+    let cancelled = false;
+    setTrailer(null);
+    setTrailerLoading(true);
+
+    getMovieVideos(current.movie.id)
+      .then((videos) => {
+        if (cancelled) return;
+        const officialTrailer =
+          videos.results?.find(
+            (v) => v.type === "Trailer" && v.site === "YouTube" && v.official
+          ) ??
+          videos.results?.find(
+            (v) => v.type === "Trailer" && v.site === "YouTube"
+          );
+        setTrailer(officialTrailer ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setTrailer(null);
+      })
+      .finally(() => {
+        if (!cancelled) setTrailerLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [current?.movie.id]);
 
   const handleShowAnother = () => {
     setCursor((c) => (c + 1) % queue.length);
@@ -198,6 +245,7 @@ export default function WatchTonightModal({
                 </h2>
                 <p className="text-sm text-fg-muted mt-1">
                   {yearFromDate(current.movie.release_date)}
+                  {runtime && ` · ${runtime}`}
                 </p>
               </div>
 
@@ -232,7 +280,7 @@ export default function WatchTonightModal({
               )}
 
               {current.movie.overview && (
-                <p className="text-fg-secondary text-sm leading-relaxed line-clamp-3">
+                <p className="text-fg-secondary text-sm leading-relaxed">
                   {current.movie.overview}
                 </p>
               )}
@@ -244,6 +292,28 @@ export default function WatchTonightModal({
                   onRate={(r) => onRate(current.movie, r)}
                 />
               </div>
+
+              {trailerLoading ? (
+                <div className="aspect-video w-full rounded-lg bg-surface animate-pulse" />
+              ) : (
+                trailer && (
+                  <div>
+                    <h3 className="text-sm font-medium text-fg-secondary mb-3">
+                      Trailer
+                    </h3>
+                    <div className="aspect-video w-full rounded-lg overflow-hidden bg-black">
+                      <iframe
+                        key={trailer.key}
+                        src={`https://www.youtube.com/embed/${trailer.key}`}
+                        title={trailer.name}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="w-full h-full"
+                      />
+                    </div>
+                  </div>
+                )
+              )}
 
               {queue.length < LOW_MATCH_THRESHOLD && (
                 <p className="text-xs text-accent-fg">

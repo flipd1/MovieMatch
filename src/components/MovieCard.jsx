@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { posterUrl, yearFromDate } from "../lib/tmdb";
+import { useMovieRuntime } from "../hooks/useMovieRuntime";
 import StarRating from "./StarRating";
 import WatchProviders from "./WatchProviders";
 
@@ -18,6 +19,7 @@ export default function MovieCard({
 }) {
   const poster = posterUrl(movie.poster_path);
   const [loaded, setLoaded] = useState(false);
+  const runtime = useMovieRuntime(movie.id);
 
   // Dismiss ("Not Interested", in Recommended for You), remove (delete a
   // rating, in Your Rated Movies) and removeFromList (My Lists) all live in
@@ -84,6 +86,7 @@ export default function MovieCard({
             </p>
             <p className="text-neutral-300 text-xs mb-2">
               {yearFromDate(movie.release_date)}
+              {runtime && ` · ${runtime}`}
             </p>
             {reason && (
               <p className="text-amber-300/90 text-[10px] italic leading-tight mb-2 line-clamp-2">
@@ -158,7 +161,7 @@ export default function MovieCard({
           )}
 
           {rating > 0 && (
-            <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm rounded-full px-1.5 py-0.5 flex items-center gap-0.5 pointer-events-none group-hover:opacity-0 transition-opacity">
+            <div className="hidden sm:flex absolute top-2 right-2 bg-black/70 backdrop-blur-sm rounded-full px-1.5 py-0.5 items-center gap-0.5 pointer-events-none group-hover:opacity-0 transition-opacity">
               <svg viewBox="0 0 20 20" className="w-3 h-3 fill-amber-400">
                 <path d="M10 1.5l2.59 5.25 5.79.84-4.19 4.09.99 5.77L10 14.77l-5.18 2.68.99-5.77L1.62 7.59l5.79-.84L10 1.5z" />
               </svg>
@@ -167,6 +170,20 @@ export default function MovieCard({
               </span>
             </div>
           )}
+
+          {/* Mobile has no hover to reveal the rating row above, so give it
+              its own always-visible, compact star strip instead — lets you
+              rate straight from the grid without opening the detail modal.
+              Sits top-right (in place of the desktop-only numeric badge
+              above) since bottom-left is already taken by the date pill on
+              cards that have one. Desktop keeps the hover overlay and skips
+              this entirely. */}
+          <div
+            className="sm:hidden absolute top-2 right-2 bg-black/70 backdrop-blur-sm rounded-full px-1.5 py-1"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <StarRating rating={rating} onRate={(r) => onRate(movie, r)} />
+          </div>
         </div>
       </div>
     </div>
