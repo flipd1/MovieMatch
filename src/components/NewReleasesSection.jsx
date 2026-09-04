@@ -12,6 +12,7 @@ import DirectorFilter from "./DirectorFilter";
 import ActorFilter from "./ActorFilter";
 import SortControl from "./SortControl";
 import ServiceCheckboxes from "./ServiceCheckboxes";
+import MobileFiltersSheet from "./MobileFiltersSheet";
 
 const RELEASE_PAGES = 3;
 
@@ -36,6 +37,7 @@ export default function NewReleasesSection({
   const [selectedDirector, setSelectedDirector] = useState(null);
   const [selectedActor, setSelectedActor] = useState(null);
   const [sortId, setSortId] = useState(null);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [draftServices, setDraftServices] = useState(services);
 
   const { directedMovieIds, loading: directorLoading } = useDirectorFilter(
@@ -146,6 +148,11 @@ export default function NewReleasesSection({
     ? `Nothing matches your filters (${activeFilters.join(", ")}) right now — try adjusting them.`
     : "No recent releases found on your selected services right now.";
 
+  const refineFilterCount =
+    (selectedGenreIds.length ? 1 : 0) +
+    (selectedDirector ? 1 : 0) +
+    (selectedActor ? 1 : 0);
+
   return (
     <>
       <div className="mb-4">
@@ -155,9 +162,14 @@ export default function NewReleasesSection({
         </p>
       </div>
 
-      <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
-        <div className="flex items-center gap-2 flex-wrap">
-          <MoodFilter activeMoodId={moodId} onChange={setMoodId} />
+      <div className="mb-5">
+        {/* "Vibe" row — mood pills, horizontally scrollable on mobile. */}
+        <MoodFilter activeMoodId={moodId} onChange={setMoodId} />
+
+        {/* "Refine" row (desktop) — Genre/Director/Actor/Sort grouped
+            together, visually separated from the mood pills above by a
+            divider — same pattern as Rate & Discover. */}
+        <div className="hidden sm:flex items-center gap-3 flex-wrap mt-4 pt-4 border-t border-border">
           <GenreFilter
             selectedGenreIds={selectedGenreIds}
             onChange={setSelectedGenreIds}
@@ -170,9 +182,72 @@ export default function NewReleasesSection({
             selected={selectedActor}
             onSelect={setSelectedActor}
           />
+          <SortControl sortId={sortId} onChange={setSortId} />
         </div>
-        <SortControl sortId={sortId} onChange={setSortId} />
+
+        {/* Refine controls (mobile) — Genre/Director/Actor collapsed into
+            one "Filters" button that opens a bottom sheet; Sort by stays
+            visible next to it since it's not really a "filter". */}
+        <div className="sm:hidden flex items-center gap-3 mt-3 pt-3 border-t border-border">
+          <button
+            type="button"
+            onClick={() => setMobileFiltersOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium border border-border-strong text-fg-muted hover:text-fg hover:border-fg-faint transition-colors cursor-pointer"
+          >
+            <svg
+              viewBox="0 0 20 20"
+              className="w-3.5 h-3.5 fill-none stroke-current stroke-2"
+            >
+              <path
+                d="M3 5h14M6 10h8M8.5 15h3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            Filters
+            {refineFilterCount > 0 && (
+              <span className="flex items-center justify-center min-w-4 h-4 px-1 rounded-full bg-amber-400 text-black text-[10px] font-bold">
+                {refineFilterCount}
+              </span>
+            )}
+          </button>
+          <SortControl sortId={sortId} onChange={setSortId} />
+        </div>
       </div>
+
+      {mobileFiltersOpen && (
+        <MobileFiltersSheet onClose={() => setMobileFiltersOpen(false)}>
+          <div className="space-y-5">
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-wide text-fg-muted">
+                Genre
+              </p>
+              <GenreFilter
+                selectedGenreIds={selectedGenreIds}
+                onChange={setSelectedGenreIds}
+              />
+            </div>
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-wide text-fg-muted">
+                Director
+              </p>
+              <DirectorFilter
+                selected={selectedDirector}
+                onSelect={setSelectedDirector}
+              />
+            </div>
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-wide text-fg-muted">
+                Actor
+              </p>
+              <ActorFilter
+                selected={selectedActor}
+                onSelect={setSelectedActor}
+              />
+            </div>
+          </div>
+        </MobileFiltersSheet>
+      )}
 
       {loading ||
       (selectedDirector && directorLoading) ||
