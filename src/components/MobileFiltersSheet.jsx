@@ -23,7 +23,13 @@ export default function MobileFiltersSheet({ onClose, children }) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg max-h-[80vh] overflow-y-auto bg-surface-strong rounded-t-2xl ring-1 ring-border p-5 pb-8 space-y-5"
+        // dvh (not vh) so this actually shrinks with the on-screen
+        // keyboard instead of claiming 80% of the full screen height
+        // behind it — vh stays pinned to the layout viewport, which
+        // doesn't account for the keyboard, and made the sheet feel like
+        // it was jumping/resizing oddly whenever an input inside it (e.g.
+        // the director search) got focused.
+        className="w-full max-w-lg max-h-[80dvh] overflow-y-auto bg-surface-strong rounded-t-2xl ring-1 ring-border p-5 pb-8 space-y-5"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">

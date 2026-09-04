@@ -4,10 +4,12 @@ import { filterByMood } from "../lib/moods";
 import { filterByGenres } from "../lib/genreFilter";
 import { sortMovies } from "../lib/sortMovies";
 import { useDirectorFilter } from "../hooks/useDirectorFilter";
+import { useActorFilter } from "../hooks/useActorFilter";
 import MovieCard from "./MovieCard";
 import MoodFilter from "./MoodFilter";
 import GenreFilter from "./GenreFilter";
 import DirectorFilter from "./DirectorFilter";
+import ActorFilter from "./ActorFilter";
 import SortControl from "./SortControl";
 import ServiceCheckboxes from "./ServiceCheckboxes";
 
@@ -32,11 +34,15 @@ export default function NewReleasesSection({
   const [moodId, setMoodId] = useState(null);
   const [selectedGenreIds, setSelectedGenreIds] = useState([]);
   const [selectedDirector, setSelectedDirector] = useState(null);
+  const [selectedActor, setSelectedActor] = useState(null);
   const [sortId, setSortId] = useState(null);
   const [draftServices, setDraftServices] = useState(services);
 
   const { directedMovieIds, loading: directorLoading } = useDirectorFilter(
     selectedDirector?.id ?? null
+  );
+  const { actedMovieIds, loading: actorLoading } = useActorFilter(
+    selectedActor?.id ?? null
   );
 
   useEffect(() => {
@@ -124,12 +130,17 @@ export default function NewReleasesSection({
     selectedDirector && directedMovieIds
       ? genreFiltered.filter((movie) => directedMovieIds.has(movie.id))
       : genreFiltered;
-  const displayMovies = sortMovies(directorFiltered, sortId);
+  const actorFiltered =
+    selectedActor && actedMovieIds
+      ? directorFiltered.filter((movie) => actedMovieIds.has(movie.id))
+      : directorFiltered;
+  const displayMovies = sortMovies(actorFiltered, sortId);
 
   const activeFilters = [];
   if (moodId) activeFilters.push("mood");
   if (selectedGenreIds.length) activeFilters.push("genre");
   if (selectedDirector) activeFilters.push("director");
+  if (selectedActor) activeFilters.push("actor");
 
   const emptyMessage = activeFilters.length
     ? `Nothing matches your filters (${activeFilters.join(", ")}) right now — try adjusting them.`
@@ -155,11 +166,17 @@ export default function NewReleasesSection({
             selected={selectedDirector}
             onSelect={setSelectedDirector}
           />
+          <ActorFilter
+            selected={selectedActor}
+            onSelect={setSelectedActor}
+          />
         </div>
         <SortControl sortId={sortId} onChange={setSortId} />
       </div>
 
-      {loading || (selectedDirector && directorLoading) ? (
+      {loading ||
+      (selectedDirector && directorLoading) ||
+      (selectedActor && actorLoading) ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
           {Array.from({ length: 18 }).map((_, i) => (
             <div

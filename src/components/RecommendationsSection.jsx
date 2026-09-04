@@ -5,10 +5,12 @@ import { filterByGenres } from "../lib/genreFilter";
 import { sortMovies } from "../lib/sortMovies";
 import { useProviderFilter } from "../hooks/useProviderFilter";
 import { useDirectorFilter } from "../hooks/useDirectorFilter";
+import { useActorFilter } from "../hooks/useActorFilter";
 import MovieCard from "./MovieCard";
 import MoodFilter from "./MoodFilter";
 import GenreFilter from "./GenreFilter";
 import DirectorFilter from "./DirectorFilter";
+import ActorFilter from "./ActorFilter";
 import SortControl from "./SortControl";
 import WatchableOnlyToggle from "./WatchableOnlyToggle";
 import MobileFiltersSheet from "./MobileFiltersSheet";
@@ -45,12 +47,16 @@ export default function RecommendationsSection({
   const [moodId, setMoodId] = useState(null);
   const [selectedGenreIds, setSelectedGenreIds] = useState([]);
   const [selectedDirector, setSelectedDirector] = useState(null);
+  const [selectedActor, setSelectedActor] = useState(null);
   const [watchableOnly, setWatchableOnly] = useState(false);
   const [sortId, setSortId] = useState(null);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const { directedMovieIds, loading: directorLoading } = useDirectorFilter(
     selectedDirector?.id ?? null
+  );
+  const { actedMovieIds, loading: actorLoading } = useActorFilter(
+    selectedActor?.id ?? null
   );
 
   const hasRatings = Object.values(ratedMovies).some((m) => m.rating > 0);
@@ -98,14 +104,18 @@ export default function RecommendationsSection({
     selectedDirector && directedMovieIds
       ? genreFiltered.filter((movie) => directedMovieIds.has(movie.id))
       : genreFiltered;
+  const actorFiltered =
+    selectedActor && actedMovieIds
+      ? directorFiltered.filter((movie) => actedMovieIds.has(movie.id))
+      : directorFiltered;
 
   const { filtered: watchable, loading: providerLoading } = useProviderFilter(
-    directorFiltered,
+    actorFiltered,
     services,
     watchableOnly
   );
 
-  const filteredMovies = watchableOnly ? watchable : directorFiltered;
+  const filteredMovies = watchableOnly ? watchable : actorFiltered;
   const finalMovies = sortMovies(filteredMovies, sortId).slice(
     0,
     DISPLAY_LIMIT
@@ -115,11 +125,13 @@ export default function RecommendationsSection({
   if (moodId) activeFilters.push("mood");
   if (selectedGenreIds.length) activeFilters.push("genre");
   if (selectedDirector) activeFilters.push("director");
+  if (selectedActor) activeFilters.push("actor");
   if (watchableOnly) activeFilters.push("your services");
 
   const refineFilterCount =
     (selectedGenreIds.length ? 1 : 0) +
     (selectedDirector ? 1 : 0) +
+    (selectedActor ? 1 : 0) +
     (watchableOnly ? 1 : 0);
 
   const emptyMessage = activeFilters.length
@@ -169,6 +181,10 @@ export default function RecommendationsSection({
             <DirectorFilter
               selected={selectedDirector}
               onSelect={setSelectedDirector}
+            />
+            <ActorFilter
+              selected={selectedActor}
+              onSelect={setSelectedActor}
             />
             <SortControl sortId={sortId} onChange={setSortId} />
           </div>
@@ -233,6 +249,15 @@ export default function RecommendationsSection({
                 onSelect={setSelectedDirector}
               />
             </div>
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-wide text-fg-muted">
+                Actor
+              </p>
+              <ActorFilter
+                selected={selectedActor}
+                onSelect={setSelectedActor}
+              />
+            </div>
             <div className="pt-1 border-t border-border">
               <WatchableOnlyToggle
                 checked={watchableOnly}
@@ -247,7 +272,8 @@ export default function RecommendationsSection({
 
       {loading ||
       (watchableOnly && providerLoading) ||
-      (selectedDirector && directorLoading) ? (
+      (selectedDirector && directorLoading) ||
+      (selectedActor && actorLoading) ? (
         <PosterGridSkeleton />
       ) : finalMovies.length ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">

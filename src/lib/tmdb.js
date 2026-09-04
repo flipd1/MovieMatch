@@ -153,31 +153,39 @@ export function getPersonMovieCredits(personId) {
   return tmdbFetch(`/person/${personId}/movie_credits`);
 }
 
-const directedMovieIdsCache = new Map();
-
-// The director filter needs "every movie this person directed", which is
-// far cheaper as one /person/{id}/movie_credits request (filtered to crew
-// entries with job "Director") than fetching /movie/{id}/credits for every
-// candidate movie just to check who directed it. Cached per person, since
-// picking the same director again (or across sections) shouldn't refetch.
-export function getCachedDirectedMovieIds(personId) {
-  if (!directedMovieIdsCache.has(personId)) {
-    directedMovieIdsCache.set(
-      personId,
-      getPersonMovieCredits(personId)
-        .then(
-          (data) =>
-            new Set(
-              (data.crew ?? [])
-                .filter((credit) => credit.job === "Director")
-                .map((credit) => credit.id)
-            )
-        )
-        .catch(() => new Set())
-    );
-  }
-  return directedMovieIdsCache.get(personId);
+// The director/actor filters need "every movie this person directed/acted
+// in", which is far cheaper as one /person/{id}/movie_credits request than
+// fetching /movie/{id}/credits for every candidate movie just to check who
+// worked on it. Each relation gets its own cache, keyed by person id, since
+// picking the same person again (even across sections, or switching between
+// the director and actor filter) shouldn't refetch.
+function createPersonMovieIdsCache(extractIds) {
+  const cache = new Map();
+  return function getCachedIds(personId) {
+    if (!cache.has(personId)) {
+      cache.set(
+        personId,
+        getPersonMovieCredits(personId)
+          .then(extractIds)
+          .catch(() => new Set())
+      );
+    }
+    return cache.get(personId);
+  };
 }
+
+export const getCachedDirectedMovieIds = createPersonMovieIdsCache(
+  (data) =>
+    new Set(
+      (data.crew ?? [])
+        .filter((credit) => credit.job === "Director")
+        .map((credit) => credit.id)
+    )
+);
+
+export const getCachedActedMovieIds = createPersonMovieIdsCache(
+  (data) => new Set((data.cast ?? []).map((credit) => credit.id))
+);
 
 export function getMovieDetails(movieId) {
   return tmdbFetch(`/movie/${movieId}`);
