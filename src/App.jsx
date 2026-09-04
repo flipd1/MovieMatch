@@ -15,6 +15,7 @@ import PasswordRecoveryModal from "./components/PasswordRecoveryModal";
 import SettingsTab from "./components/SettingsTab";
 import TabNav from "./components/TabNav";
 import MovieDetail from "./components/MovieDetail";
+import RatingToast from "./components/RatingToast";
 import TMDBAttribution from "./components/TMDBAttribution";
 import ThemeToggle from "./components/ThemeToggle";
 import { useRatedMovies } from "./hooks/useRatedMovies";
@@ -124,6 +125,7 @@ export default function App() {
   const [addToListMovie, setAddToListMovie] = useState(null);
   const [activeTab, setActiveTab] = useState("discover");
   const [accountFocusTarget, setAccountFocusTarget] = useState(null);
+  const [ratingToast, setRatingToast] = useState(null);
   const scrollPositions = useRef({
     discover: 0,
     theaters: 0,
@@ -162,6 +164,22 @@ export default function App() {
   const openMovie = useCallback((movie, reason) => {
     setOpenMovieId(movie.id);
     setOpenMovieReason(reason ?? null);
+  }, []);
+
+  // Wraps rateMovie with a brief confirmation toast — rating a movie
+  // straight from a card (no detail modal) can make that card disappear
+  // from its current list almost immediately, so the star filling in
+  // isn't reliable feedback on its own, especially on mobile.
+  const handleRate = useCallback(
+    (movie, rating) => {
+      rateMovie(movie, rating);
+      setRatingToast({ title: movie.title, rating });
+    },
+    [rateMovie]
+  );
+
+  const clearRatingToast = useCallback(() => {
+    setRatingToast(null);
   }, []);
 
   const handleTabChange = useCallback(
@@ -226,7 +244,7 @@ export default function App() {
           </div>
           <SearchBar
             ratedMovies={ratedMovies}
-            onRate={rateMovie}
+            onRate={handleRate}
             onOpen={openMovie}
             openMovieId={openMovieId}
           />
@@ -301,7 +319,7 @@ export default function App() {
               {!loading && (
                 <RewatchReminder
                   ratedMovies={ratedMovies}
-                  onRate={rateMovie}
+                  onRate={handleRate}
                   onOpen={openMovie}
                   onAddToList={setAddToListMovie}
                 />
@@ -312,7 +330,7 @@ export default function App() {
                 ratingsLoading={loading}
                 services={services}
                 onServicesChange={setServices}
-                onRate={rateMovie}
+                onRate={handleRate}
                 onOpen={openMovie}
                 dismissedIds={dismissedIds}
                 onDismissMovie={dismissMovie}
@@ -328,7 +346,7 @@ export default function App() {
                 ) : (
                   <RatedMoviesGrid
                     movies={list}
-                    onRate={rateMovie}
+                    onRate={handleRate}
                     onOpen={openMovie}
                     onRemove={(movie) => rateMovie(movie, 0)}
                     onAddToList={setAddToListMovie}
@@ -346,7 +364,7 @@ export default function App() {
             </h2>
             <InTheatersSection
               ratedMovies={ratedMovies}
-              onRate={rateMovie}
+              onRate={handleRate}
               onOpen={openMovie}
               onAddToList={setAddToListMovie}
             />
@@ -360,7 +378,7 @@ export default function App() {
             </h2>
             <NewReleasesSection
               ratedMovies={ratedMovies}
-              onRate={rateMovie}
+              onRate={handleRate}
               onOpen={openMovie}
               services={services}
               onServicesChange={setServices}
@@ -391,7 +409,7 @@ export default function App() {
               lists={lists}
               moviesById={moviesById}
               ratedMovies={ratedMovies}
-              onRate={rateMovie}
+              onRate={handleRate}
               onOpen={openMovie}
               isPro={isPro}
               onGoToSettings={() => handleTabChange("settings")}
@@ -433,7 +451,7 @@ export default function App() {
           movieId={openMovieId}
           rating={ratedMovies[openMovieId]?.rating ?? 0}
           reason={openMovieReason}
-          onRate={rateMovie}
+          onRate={handleRate}
           onClose={() => {
             setOpenMovieId(null);
             setOpenMovieReason(null);
@@ -446,7 +464,7 @@ export default function App() {
         <WatchTonightModal
           ratedMovies={ratedMovies}
           services={services}
-          onRate={rateMovie}
+          onRate={handleRate}
           onClose={() => setWatchTonightOpen(false)}
           dismissedIds={dismissedIds}
         />
@@ -462,6 +480,11 @@ export default function App() {
           onCreateAccount={handleCreateAccountFromSignIn}
         />
       )}
+
+      <RatingToast
+        toast={ratingToast}
+        onDone={clearRatingToast}
+      />
 
       {isPasswordRecovery && (
         <PasswordRecoveryModal
